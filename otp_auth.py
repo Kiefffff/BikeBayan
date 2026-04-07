@@ -6,7 +6,7 @@ authenticator = MOSIPAuthenticator(config=config)
 
 # step 1: generate OTP
 response = authenticator.genotp(
-    individual_id="2092578314",
+    individual_id="5408602380",
     individual_id_type="UIN",
     # can pass either one of these
     email=True,
@@ -22,7 +22,7 @@ transaction_id = response_body["transactionID"]
 # can change function to authenticator.kyc()
 # but don't forget to decrypt the response for that
 response = authenticator.auth(
-    individual_id="2092578314",
+    individual_id="5408602380",
     individual_id_type="UIN",
     otp_value="PLACE OTP HERE",
     consent=True,

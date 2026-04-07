@@ -6,9 +6,9 @@ config = Dynaconf(settings_files=["./config.toml"], environments=False)
 authenticator = MOSIPAuthenticator(config=config)
 
 # yes/no auth
-demographics_data = DemographicsModel(dob="1878/08/19")
+demographics_data = DemographicsModel(dob="1997/09/12")
 response = authenticator.auth(
-    individual_id="2092578314",
+    individual_id="5408602380",
     individual_id_type="UIN",
     demographic_data=demographics_data,
     consent=True,
@@ -21,10 +21,10 @@ print(f"RESPONSE: {response_body}")
 # location1 (city), location3 (province), zone (barangay)
 # name, gender
 demographics_data = DemographicsModel(
-    name=[{"language": "eng", "value": "Mañuel Luis y Molina Quezon"}],
+    name=[{"language": "eng", "value": "Yuki Nakashima"}],
 )
 response = authenticator.auth(
-    individual_id="2092578314",
+    individual_id="5408602380",
     individual_id_type="UIN",
     demographic_data=demographics_data,
     consent=True,
