@@ -19,7 +19,7 @@ symmetric_key_size = 256
 symmetric_nonce_size = 128
 symmetric_gcm_tag_size = 128
 # certificate from the below path is used to encrypt the Auth Request.
-encrypt_cert_path = "resources/pdec-ida-partner.crt"
+encrypt_cert_path = "resources/pdec-ida-partner.pem"
 # used to decrypt the received response
 decrypt_p12_file_path = "resources/keystore.p12"
 decrypt_p12_file_password = "PASTE_KEYSTORE_PASSWORD_HERE"
