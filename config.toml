@@ -33,4 +33,4 @@ sign_p12_file_password = "cs145-252-13@12345"
 [logging]
 log_file_path = "authenticator.log"
 log_format = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-loglevel = "INFO" # can be one of "DEBUG" | "INFO" | "WARNING" | "ERROR" | "CRITICAL"
+loglevel = "INFO"
