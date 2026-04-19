@@ -8,7 +8,7 @@ authenticator = MOSIPAuthenticator(config=config)
 # can change function to authenticator.kyc()
 # but don't forget to decrypt the response for that
 response = authenticator.auth(
-    individual_id="5408602380",
+    individual_id="7831465308",
     individual_id_type="UIN",
     otp_value="PLACE OTP HERE",
     txn_id="PLACE TRANSACTION ID HERE",

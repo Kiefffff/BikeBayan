@@ -6,7 +6,7 @@ authenticator = MOSIPAuthenticator(config=config)
 
 # step 1: generate OTP
 response = authenticator.genotp(
-    individual_id="5408602380",
+    individual_id="7831465308",
     individual_id_type="UIN",
     # can pass either one of these
     email=True,
