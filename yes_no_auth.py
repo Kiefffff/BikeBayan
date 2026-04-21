@@ -8,7 +8,7 @@ authenticator = MOSIPAuthenticator(config=config)
 # yes/no auth
 demographics_data = DemographicsModel(dob="1997/09/12")
 response = authenticator.auth(
-    individual_id="5408602380",
+    individual_id="7831465308",
     individual_id_type="UIN",
     demographic_data=demographics_data,
     consent=True,
@@ -22,11 +22,12 @@ print(f"RESPONSE: {response_body}")
 # address_line1, address_line2, address_line3,
 # name, gender
 demographics_data = DemographicsModel(
-    name=[{"language": "eng", "value": "Yuki Nakashima"}],
-    address_line1=[{"language": "eng", "value": "UP AECH"}],
+    name=[{"language": "eng", "value": "Rafael Jimenez"}],
+    dob="2003/06/12",
+
 )
 response = authenticator.auth(
-    individual_id="5408602380",
+    individual_id="7831465308",
     individual_id_type="UIN",
     demographic_data=demographics_data,
     consent=True,

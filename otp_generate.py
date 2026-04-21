@@ -10,7 +10,7 @@ response = authenticator.genotp(
     individual_id_type="UIN",
     # can pass either one of these
     email=True,
-    phone=True,
+    phone=False,
 )
 response_body = response.json()
 print(f"RESPONSE: {response_body}")
