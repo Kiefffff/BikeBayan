@@ -21,9 +21,11 @@ def verify_scan():
             return "False", 400
 
         # Extract the variables sent by your scanner
-        uin = data.get("individual_id")
+        uin = data.get("uin")
         dob = data.get("dob")
         name = data.get("name") 
+
+        print(f"Received data: UIN={uin}, DOB={dob}, Name={name}")
 
         # Build the demographics model
         name_list = [{"language": "eng", "value": name}] if name else None
