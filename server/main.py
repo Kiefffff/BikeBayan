@@ -3,14 +3,14 @@ from fastapi.middleware.cors import CORSMiddleware
 from server.core.settings import settings
 from server.api import health
 from server.api import users
+from server.api import auth  # ← ADD THIS IMPORT
 
 app = FastAPI(title=settings.PROJECT_NAME)
 
-# CORS config for future
-# update allow_origins with frontend URL once deployed (e.g. ["https://mywebapp.com"])
+# CORS config
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # Change this in production!
+    allow_origins=["*"],  # Update i think to frontend URL later on
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -19,6 +19,7 @@ app.add_middleware(
 # Include Routers
 app.include_router(health.router, prefix="/api")
 app.include_router(users.router, prefix="/users")
+app.include_router(auth.router, prefix="/api")  
 
 @app.get("/")
 async def root():
