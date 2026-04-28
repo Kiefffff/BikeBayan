@@ -1,12 +1,24 @@
+import os
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from mosip_auth_sdk.models import DemographicsModel
 from mosip_auth_sdk import MOSIPAuthenticator
 from dynaconf import Dynaconf
 import logging
+from supabase import create_client, Client
+from dotenv import load_dotenv
 
 router = APIRouter()
 
+
+# load .env
+load_dotenv()
+
+# setup 
+supabase: Client = create_client(
+    os.getenv("SUPABASE_URL"),
+    os.getenv("SUPABASE_KEY")
+)
 
 # Lazy init — avoids loading certs at import time (startup crash/warnings)
 def get_authenticator():
@@ -18,7 +30,7 @@ class VerifyRequest(BaseModel):
     uin: str
     dob: str
     name: str
-
+    email: str
 
 @router.post("/verify")
 async def verify_scan(req: VerifyRequest):
@@ -26,6 +38,7 @@ async def verify_scan(req: VerifyRequest):
         uin = req.uin
         dob = req.dob
         name = req.name
+        email = req.email
 
         logging.info(f"Received data: UIN={uin}, DOB={dob}, Name={name}")
 
@@ -51,7 +64,31 @@ async def verify_scan(req: VerifyRequest):
         if not auth_status:
             raise HTTPException(status_code=401, detail="False")
 
-        return {"result": "Truth"}
+        response2 = supabase.table("user") \
+        .select("name") \
+        .eq("uin", uin) \
+        .execute()
+
+        # already enrolled/in the database
+        if response2.data:
+            print("exists")
+            return {"result": "Truth"}
+        # adding to database if they are not
+        try:
+            # Push data to the 'user' table
+            
+            print("doesnt")
+            response = supabase.table("user").insert({
+                "uin": int(uin), 
+                "name": name,
+                "email": email
+            }).execute()
+            return {"result": "Truth"}
+
+        except Exception as e:
+            logging.error(f"Enrollment to server failed: {e}")
+            raise HTTPException(status_code=500, detail="False")
+
 
     except HTTPException:
         raise

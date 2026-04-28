@@ -1,12 +1,15 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-
+import logging
+import os
+from pathlib import Path
 from server.api import health
 from server.api import users
 from server.api import mosip_auth
 from server.api import verify
 
 app = FastAPI(title="BikeBayan")
+
 
 # CORS config
 app.add_middleware(

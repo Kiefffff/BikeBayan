@@ -6,6 +6,29 @@ import logging
 
 router = APIRouter(prefix="/auth", tags=["authentication"])
 
+
+# Configure the logger
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler("logs/app.log"), # This creates the file
+        logging.StreamHandler()              # This still prints to your terminal
+    ]
+)
+
+logger = logging.getLogger(__name__)
+logger.info("Logger initialized and exporting to logs/app.log")
+
+def verify_user(user_data):
+    logger.info(f"Attempting to verify user: {user_data.get('email')}")
+    
+    try:
+        # Your Supabase logic here
+        logger.info("User successfully verified.")
+    except Exception as e:
+        logger.error(f"Verification failed: {str(e)}")
+
 # Initialize MOSIP 
 def get_authenticator():
     config = Dynaconf(settings_files=["./config.toml"], environments=False)
@@ -31,9 +54,12 @@ async def generate_otp(req: OTPRequest):
             phone=(req.channel == "sms")
         )
         data = resp.json()
+        logger.info(f"Generating OTP for user: UIN={req.uin}, transactionID={data["transactionID"]}")
+        print(data["transactionID"])
+        print(data)
         return {"success": True, "transaction_id": data["transactionID"]}
     except Exception as e:
-        logging.error(f"OTP generation failed: {e}")
+        logger.error(f"OTP generation failed: {e}")
         raise HTTPException(status_code=500, detail=f"MOSIP Error: {str(e)}")
 
 @router.post("/verify-otp")
@@ -48,11 +74,16 @@ async def verify_otp(req: VerifyRequest):
             consent=True
         )
         data = resp.json()
+        print(data)
         auth_status = data.get("response", {}).get("authStatus", False)
+        if(auth_status):
+            logger.info(f"Verifying OTP for user: UIN={req.uin}, transactionID={data["transactionID"]}")
+        else:
+            logger.info(f"Failed OTP for user: UIN={req.uin}, transactionID={data["transactionID"]}")
         return {
             "success": auth_status,
             "auth_token": data["response"].get("authToken") if auth_status else None
         }
     except Exception as e:
-        logging.error(f"OTP verification failed: {e}")
+        logger.error(f"OTP verification failed: {e}")
         raise HTTPException(status_code=500, detail=f"MOSIP Error: {str(e)}")
