@@ -10,9 +10,10 @@ authenticator = MOSIPAuthenticator(config=config)
 response = authenticator.auth(
     individual_id="7831465308",
     individual_id_type="UIN",
-    otp_value="PLACE OTP HERE",
-    txn_id="PLACE TRANSACTION ID HERE",
+    otp_value="304986",
+    txn_id="7780366966",
     consent=True,
 )
+print(f"response: {response}")
 response_body = response.json()
 print(f"RESPONSE: {response_body}")

@@ -32,5 +32,6 @@ response = authenticator.auth(
     demographic_data=demographics_data,
     consent=True,
 )
+print(f"response: {response}")
 response_body = response.json()
 print(f"RESPONSE: {response_body}")
