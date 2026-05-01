@@ -8,6 +8,8 @@ from server.api import users
 from server.api import mosip_auth
 from server.api import verify
 from server.api import bikes
+from server.api import auth  
+from server.api import rentals
 app = FastAPI(title="BikeBayan")
 
 
@@ -25,7 +27,8 @@ app.include_router(health.router, prefix="/api")
 app.include_router(users.router, prefix="/users")
 app.include_router(mosip_auth.router, prefix="/api")
 app.include_router(verify.router, prefix="/api")
-app.include_router(bikes.router, prefix="/api")
+app.include_router(bikes.router, prefix="/api")app.include_router(rentals.router, prefix="/api")
+
 @app.get("/")
 async def root():
     return {"message": "Welcome to BikeBayan!"}

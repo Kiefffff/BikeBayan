@@ -11,7 +11,7 @@ colorama==0.4.6
 cryptography==43.0.3
 deprecation==2.1.0
 dynaconf==3.2.11
-fastapi==0.136.0
+fastapi==0.128.8
 Flask==2.3.2
 fsspec==2026.4.0
 h11==0.16.0
@@ -29,12 +29,8 @@ MarkupSafe==3.0.3
 mdurl==0.1.2
 mmh3==5.2.1
 mosip-auth-sdk @ git+https://github.com/mosip/ida-auth-sdk.git@f322c59868123c2ef9410b5a3fecfd5dcdfd56af
-multidict==6.7.1
 numpy==2.2.6
 opencv-python==4.12.0.88
-packaging==26.2
-postgrest==2.29.0
-propcache==0.4.1
 pycparser==2.23
 pydantic==2.12.5
 pydantic_core==2.41.5
@@ -60,8 +56,4 @@ tenacity==9.1.4
 typing-inspection==0.4.2
 typing_extensions==4.15.0
 urllib3==2.5.0
-uvicorn==0.46.0
-websockets==15.0.1
-Werkzeug==3.1.8
-yarl==1.23.0
-zstandard==0.25.0
+flask==2.3.2
