@@ -3,7 +3,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from server.core.settings import settings
 from server.api import health
 from server.api import users
-from server.api import auth  # ← ADD THIS IMPORT
+from server.api import auth  
+from server.api import rentals
 
 app = FastAPI(title=settings.PROJECT_NAME)
 
@@ -20,6 +21,7 @@ app.add_middleware(
 app.include_router(health.router, prefix="/api")
 app.include_router(users.router, prefix="/users")
 app.include_router(auth.router, prefix="/api")  
+app.include_router(rentals.router, prefix="/api")
 
 @app.get("/")
 async def root():
