@@ -27,7 +27,8 @@ app.include_router(health.router, prefix="/api")
 app.include_router(users.router, prefix="/users")
 app.include_router(mosip_auth.router, prefix="/api")
 app.include_router(verify.router, prefix="/api")
-app.include_router(bikes.router, prefix="/api")app.include_router(rentals.router, prefix="/api")
+app.include_router(bikes.router, prefix="/api")
+app.include_router(rentals.router, prefix="/api")
 
 @app.get("/")
 async def root():
