@@ -57,12 +57,69 @@ async def get_station_bikes(station_id: int):
 # 3. ISHAN POST /api/rentals/borrow (Phase 1)
 @router.post("/rentals/borrow", status_code=201)
 async def borrow_bike(req: BorrowRequest):
-    pass
+    try:
+        slot_check = supabase.table("slots").select("occupied_bike").eq("id", req.slot_id).execute()
+        if not slot_check.data or slot_check.data[0].get("occupied_bike") != req.bike_id:
+            raise HTTPException(status_code=400, detail="Bike is not in the specified slot.")
+
+        supabase.table("slots").update({"occupied_bike": None}).eq("id", req.slot_id).execute()
+
+        supabase.table("bikes").update({"status": "in_use"}).eq("id", req.bike_id).execute()
+        supabase.table("user").update({"status": "borrowing"}).eq("uin", req.user_uin).execute()
+        rental_data = {
+            "user_uin": req.user_uin,
+            "bike_id": req.bike_id,
+            "start_station_id": req.start_station_id,
+            "start_time": datetime.now(timezone.utc).isoformat()
+        }
+        response = supabase.table("rental").insert(rental_data).execute()
+        
+        logger.info(f"User {req.user_uin} borrowed Bike {req.bike_id} from Slot {req.slot_id}")
+        return {"message": "Borrow successful", "rental": response.data[0]}
+
+    except HTTPException:
+        raise 
+    except Exception as e:
+        logger.error(f"Borrow failed: {e}")
+        raise HTTPException(status_code=500, detail="Server error during borrow process")
+
 
 # 4. ISHAN POST /api/rentals/return (Phase 2)
 @router.post("/rentals/return", status_code=200)
 async def return_bike(req: ReturnRequest):
-    pass
+    try:
+        active_rental = supabase.table("rental").select("id") \
+            .eq("user_uin", req.user_uin) \
+            .eq("bike_id", req.bike_id) \
+            .is_("end_time", "null").execute()
+
+        if not active_rental.data:
+            raise HTTPException(status_code=400, detail="No active rental found for this user and bike.")
+        rental_id = active_rental.data[0]['id']
+
+        slot_check = supabase.table("slots").select("occupied_bike").eq("id", req.slot_id).execute()
+        if not slot_check.data or slot_check.data[0].get("occupied_bike") is not None:
+            raise HTTPException(status_code=400, detail="The destination slot is already full.")
+
+        supabase.table("rental").update({
+            "end_time": datetime.now(timezone.utc).isoformat(),
+            "end_station_id": req.end_station_id
+        }).eq("id", rental_id).execute()
+
+        supabase.table("slots").update({"occupied_bike": req.bike_id}).eq("id", req.slot_id).execute()
+
+        supabase.table("bikes").update({"status": "available"}).eq("id", req.bike_id).execute()
+
+        supabase.table("user").update({"status": "normal"}).eq("uin", req.user_uin).execute()
+
+        logger.info(f"User {req.user_uin} returned Bike {req.bike_id} to Slot {req.slot_id}")
+        return {"message": "Return successful", "new_slot": req.slot_id}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Return failed: {e}")
+        raise HTTPException(status_code=500, detail="Server error during return process")
 # 5. ISHAN GET /api/users/{uin}/status
 @router.get("/users/{uin}/status")
 async def get_user_status(uin: int):
