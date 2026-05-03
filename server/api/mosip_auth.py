@@ -6,7 +6,6 @@ import logging
 
 router = APIRouter(prefix="/auth", tags=["authentication"])
 
-
 # Configure the logger
 logging.basicConfig(
     level=logging.INFO,
@@ -29,10 +28,12 @@ def verify_user(user_data):
     except Exception as e:
         logger.error(f"Verification failed: {str(e)}")
 
-# Initialize MOSIP 
+# Initialize MOSIP globally so it only loads config.toml once
+config = Dynaconf(settings_files=["./config.toml"], environments=False)
+auth_instance = MOSIPAuthenticator(config=config)
+
 def get_authenticator():
-    config = Dynaconf(settings_files=["./config.toml"], environments=False)
-    return MOSIPAuthenticator(config=config)
+    return auth_instance
 
 class OTPRequest(BaseModel):
     uin: str
@@ -54,7 +55,10 @@ async def generate_otp(req: OTPRequest):
             phone=(req.channel == "sms")
         )
         data = resp.json()
-        logger.info(f"Generating OTP for user: UIN={req.uin}, transactionID={data["transactionID"]}")
+        
+        # FIX: Changed inner double quotes to single quotes
+        logger.info(f"Generating OTP for user: UIN={req.uin}, transactionID={data['transactionID']}")
+        
         print(data["transactionID"])
         print(data)
         return {"success": True, "transaction_id": data["transactionID"]}
@@ -76,10 +80,14 @@ async def verify_otp(req: VerifyRequest):
         data = resp.json()
         print(data)
         auth_status = data.get("response", {}).get("authStatus", False)
-        if(auth_status):
-            logger.info(f"Verifying OTP for user: UIN={req.uin}, transactionID={data["transactionID"]}")
+        
+        if auth_status:
+            # FIX: Changed inner double quotes to single quotes
+            logger.info(f"Verifying OTP for user: UIN={req.uin}, transactionID={data['transactionID']}")
         else:
-            logger.info(f"Failed OTP for user: UIN={req.uin}, transactionID={data["transactionID"]}")
+            # FIX: Changed inner double quotes to single quotes
+            logger.info(f"Failed OTP for user: UIN={req.uin}, transactionID={data['transactionID']}")
+            
         return {
             "success": auth_status,
             "auth_token": data["response"].get("authToken") if auth_status else None
