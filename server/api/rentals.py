@@ -65,7 +65,7 @@ async def borrow_bike(req: BorrowRequest):
         supabase.table("slots").update({"occupied_bike": None}).eq("id", req.slot_id).execute()
 
         supabase.table("bikes").update({"status": "in_use"}).eq("id", req.bike_id).execute()
-        supabase.table("user").update({"status": "borrowing"}).eq("uin", req.user_uin).execute()
+        supabase.table("user").update({"status": "Borrowing"}).eq("uin", req.user_uin).execute()
         rental_data = {
             "user_uin": req.user_uin,
             "bike_id": req.bike_id,
@@ -110,7 +110,7 @@ async def return_bike(req: ReturnRequest):
 
         supabase.table("bikes").update({"status": "available"}).eq("id", req.bike_id).execute()
 
-        supabase.table("user").update({"status": "normal"}).eq("uin", req.user_uin).execute()
+        supabase.table("user").update({"status": "Cleared"}).eq("uin", req.user_uin).execute()
 
         logger.info(f"User {req.user_uin} returned Bike {req.bike_id} to Slot {req.slot_id}")
         return {"message": "Return successful", "new_slot": req.slot_id}
