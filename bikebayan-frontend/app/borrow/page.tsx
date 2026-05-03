@@ -1,7 +1,7 @@
 // app/borrow/page.tsx
 "use client";
 import { useState } from "react";
-import { generateOTP, verifyOTP, checkUserStatus } from "@/lib/api";
+import { generateOTP, verifyOTP, getUserStatus } from "@/lib/api";
 import { Mail, Lock, CheckCircle, AlertCircle, ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
@@ -28,9 +28,11 @@ export default function BorrowPage() {
     setSuccessMsg("");
 
     try {
-      // Check if user is already borrowing (mocked for now need to fix this later on)
-      const status = await checkUserStatus(uin);
-      if (status.status === "BORROWING") {
+      // Check if user is already borrowing
+      const status = await getUserStatus(uin);
+      
+      // FIX 2: Changed to "Borrowing" to match your Supabase database exactly
+      if (status.status === "Borrowing") {
         throw new Error("You already have an active rental. Please return the bike first.");
       }
 
