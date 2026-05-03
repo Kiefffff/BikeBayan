@@ -40,7 +40,7 @@ class OTPRequest(BaseModel):
     channel: str = "email"  # "email" or "sms"
 
 class VerifyRequest(BaseModel):
-    uin: str
+    email: str
     otp: str
     transaction_id: str
 
@@ -69,9 +69,14 @@ async def generate_otp(req: OTPRequest):
 @router.post("/verify-otp")
 async def verify_otp(req: VerifyRequest):
     try:
+    
+        user_lookup = supabase.table("user").select("uin").eq("email", req.email).execute()
+        if not user_lookup.data:
+            raise HTTPException(status_code=404, detail="User not found")
+        uin = str(user_lookup.data[0]['uin'])
         auth = get_authenticator()
         resp = auth.auth(
-            individual_id=req.uin,
+            individual_id=uin,
             individual_id_type="UIN",
             otp_value=req.otp,
             txn_id=req.transaction_id,
