@@ -3,46 +3,46 @@ from pydantic import BaseModel
 from mosip_auth_sdk import MOSIPAuthenticator
 from dynaconf import Dynaconf
 import logging
+import os
+from supabase import create_client, Client
+from dotenv import load_dotenv
+
+load_dotenv()
+supabase: Client = create_client(
+    os.getenv("SUPABASE_URL"),
+    os.getenv("SUPABASE_KEY")
+)
 
 router = APIRouter(prefix="/auth", tags=["authentication"])
 
-# Configure the logger
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler("logs/app.log"), # This creates the file
-        logging.StreamHandler()              # This still prints to your terminal
+        logging.FileHandler("logs/app.log"),
+        logging.StreamHandler()
     ]
 )
 
 logger = logging.getLogger(__name__)
 logger.info("Logger initialized and exporting to logs/app.log")
 
-def verify_user(user_data):
-    logger.info(f"Attempting to verify user: {user_data.get('email')}")
-    
-    try:
-        # Your Supabase logic here
-        logger.info("User successfully verified.")
-    except Exception as e:
-        logger.error(f"Verification failed: {str(e)}")
-
-# Initialize MOSIP globally so it only loads config.toml once
 config = Dynaconf(settings_files=["./config.toml"], environments=False)
 auth_instance = MOSIPAuthenticator(config=config)
+
+# In-memory store: uin -> transaction_id
+otp_transactions: dict[str, str] = {}
 
 def get_authenticator():
     return auth_instance
 
 class OTPRequest(BaseModel):
     uin: str
-    channel: str = "email"  # "email" or "sms"
+    channel: str = "email"
 
 class VerifyRequest(BaseModel):
     email: str
     otp: str
-    transaction_id: str
 
 @router.post("/generate-otp")
 async def generate_otp(req: OTPRequest):
@@ -55,13 +55,12 @@ async def generate_otp(req: OTPRequest):
             phone=(req.channel == "sms")
         )
         data = resp.json()
-        
-        # FIX: Changed inner double quotes to single quotes
+
+        # Store transaction_id server-side
+        otp_transactions[req.uin] = data["transactionID"]
+
         logger.info(f"Generating OTP for user: UIN={req.uin}, transactionID={data['transactionID']}")
-        
-        print(data["transactionID"])
-        print(data)
-        return {"success": True, "transaction_id": data["transactionID"]}
+        return {"success": True}
     except Exception as e:
         logger.error(f"OTP generation failed: {e}")
         raise HTTPException(status_code=500, detail=f"MOSIP Error: {str(e)}")
@@ -69,34 +68,41 @@ async def generate_otp(req: OTPRequest):
 @router.post("/verify-otp")
 async def verify_otp(req: VerifyRequest):
     try:
-    
+        # Get UIN from email
         user_lookup = supabase.table("user").select("uin").eq("email", req.email).execute()
         if not user_lookup.data:
             raise HTTPException(status_code=404, detail="User not found")
         uin = str(user_lookup.data[0]['uin'])
+
+        # Get stored transaction_id
+        transaction_id = otp_transactions.get(uin)
+        if not transaction_id:
+            raise HTTPException(status_code=400, detail="No OTP generated for this user")
+
         auth = get_authenticator()
         resp = auth.auth(
             individual_id=uin,
             individual_id_type="UIN",
             otp_value=req.otp,
-            txn_id=req.transaction_id,
+            txn_id=transaction_id,
             consent=True
         )
         data = resp.json()
-        print(data)
         auth_status = data.get("response", {}).get("authStatus", False)
-        
+
         if auth_status:
-            # FIX: Changed inner double quotes to single quotes
-            logger.info(f"Verifying OTP for user: UIN={req.uin}, transactionID={data['transactionID']}")
+            # Clean up transaction after successful verification
+            otp_transactions.pop(uin, None)
+            logger.info(f"OTP verified for UIN={uin}, transactionID={transaction_id}")
         else:
-            # FIX: Changed inner double quotes to single quotes
-            logger.info(f"Failed OTP for user: UIN={req.uin}, transactionID={data['transactionID']}")
-            
+            logger.info(f"OTP failed for UIN={uin}, transactionID={transaction_id}")
+
         return {
             "success": auth_status,
             "auth_token": data["response"].get("authToken") if auth_status else None
         }
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"OTP verification failed: {e}")
         raise HTTPException(status_code=500, detail=f"MOSIP Error: {str(e)}")
