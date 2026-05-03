@@ -14,6 +14,7 @@ supabase: Client = create_client(
 )
 
 router = APIRouter(prefix="/auth", tags=["authentication"])
+otp_transactions: dict[str, str] = {}
 
 logging.basicConfig(
     level=logging.INFO,
@@ -23,15 +24,10 @@ logging.basicConfig(
         logging.StreamHandler()
     ]
 )
-
 logger = logging.getLogger(__name__)
-logger.info("Logger initialized and exporting to logs/app.log")
 
 config = Dynaconf(settings_files=["./config.toml"], environments=False)
 auth_instance = MOSIPAuthenticator(config=config)
-
-# In-memory store: uin -> transaction_id
-otp_transactions: dict[str, str] = {}
 
 def get_authenticator():
     return auth_instance
@@ -55,27 +51,24 @@ async def generate_otp(req: OTPRequest):
             phone=(req.channel == "sms")
         )
         data = resp.json()
-
-        # Store transaction_id server-side
         otp_transactions[req.uin] = data["transactionID"]
-
-        logger.info(f"Generating OTP for user: UIN={req.uin}, transactionID={data['transactionID']}")
-        return {"success": True}
+        logger.info(f"OTP generated for UIN={req.uin}")
+        return {"success": True, "transaction_id": data["transactionID"]}
     except Exception as e:
         logger.error(f"OTP generation failed: {e}")
-        raise HTTPException(status_code=500, detail=f"MOSIP Error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/verify-otp")
 async def verify_otp(req: VerifyRequest):
     try:
-        # Get UIN from email
+        # ✅ FIXED: Complete the .data check
         user_lookup = supabase.table("user").select("uin").eq("email", req.email).execute()
         if not user_lookup.data:
             raise HTTPException(status_code=404, detail="User not found")
+        
         uin = str(user_lookup.data[0]['uin'])
-
-        # Get stored transaction_id
         transaction_id = otp_transactions.get(uin)
+        
         if not transaction_id:
             raise HTTPException(status_code=400, detail="No OTP generated for this user")
 
@@ -91,18 +84,11 @@ async def verify_otp(req: VerifyRequest):
         auth_status = data.get("response", {}).get("authStatus", False)
 
         if auth_status:
-            # Clean up transaction after successful verification
             otp_transactions.pop(uin, None)
-            logger.info(f"OTP verified for UIN={uin}, transactionID={transaction_id}")
-        else:
-            logger.info(f"OTP failed for UIN={uin}, transactionID={transaction_id}")
-
-        return {
-            "success": auth_status,
-            "auth_token": data["response"].get("authToken") if auth_status else None
-        }
+            
+        return {"success": auth_status}
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"OTP verification failed: {e}")
-        raise HTTPException(status_code=500, detail=f"MOSIP Error: {str(e)}")
+        logger.error(f"Verification failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
