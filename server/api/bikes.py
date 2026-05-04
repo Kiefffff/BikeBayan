@@ -18,7 +18,7 @@ router = APIRouter(prefix="/bikes", tags=["ESP Lock"])
 logger = logging.getLogger(__name__)
 
 class EspStationUpdateRequest(BaseModel):
-    station_id: int
+    station_id: int  # ✅ Changed from station_ID
     slots: dict[str, int | None]  
 
 class EspUserStatusRequest(BaseModel):
@@ -27,7 +27,7 @@ class EspUserStatusRequest(BaseModel):
 class EspBorrowRequest(BaseModel):
     uin: int
     bike_id: int
-    station_id: int | None = None
+    station_id: int | None = None  # ✅ Changed from station_ID
 
 class EspUserBikeCheckRequest(BaseModel):
     uin: int
@@ -35,8 +35,8 @@ class EspUserBikeCheckRequest(BaseModel):
 
 class EspReturnedRequest(BaseModel):
     uin: int
-    station_id: int | None = None
-
+    station_id: int | None = None  # ✅ Changed from station_ID
+    
 @router.post("/station-update")
 async def station_update(req: EspStationUpdateRequest):
     try:
@@ -45,7 +45,7 @@ async def station_update(req: EspStationUpdateRequest):
 
             slot_lookup = supabase.table("slots") \
                 .select("id") \
-                .eq("station_id", req.station_id) \
+                .eq("station_id", req.station_id) \  # ✅ Already correct
                 .eq("slot_number", slot_number) \
                 .execute()
 
@@ -91,7 +91,7 @@ async def set_user_borrowing(req: EspBorrowRequest):
         rental_data = {
             "user_uin": req.uin,
             "bike_id": req.bike_id,
-            "start_station_id": req.station_id,  # ✅ Fixed
+            "start_station_id": req.station_id,  # ✅ Changed from req.station_ID
             "start_time": datetime.now(timezone.utc).isoformat()
         }
         supabase.table("rental").insert(rental_data).execute()
@@ -108,7 +108,7 @@ async def user_bike_check(req: EspUserBikeCheckRequest):
             .eq("rfid", req.rfid).execute()
 
         if not bike_lookup.data:
-            return PlainTextResponse("-1")  # rfid not found 
+            return PlainTextResponse("-1")
 
         rfid_bike_id = bike_lookup.data[0]['id']
 
@@ -117,12 +117,12 @@ async def user_bike_check(req: EspUserBikeCheckRequest):
             .is_("end_time", "null").execute()
 
         if not active_rental.data:
-            return PlainTextResponse("-1")  # user is not borrowing
+            return PlainTextResponse("-1")
 
         rented_bike_id = active_rental.data[0]['bike_id']
 
         if rfid_bike_id != rented_bike_id:
-            return PlainTextResponse("-1")  #bike mismatch slot 
+            return PlainTextResponse("-1")
 
         return PlainTextResponse(str(rfid_bike_id))
     except Exception as e:
@@ -144,7 +144,7 @@ async def set_user_returned(req: EspReturnedRequest):
 
         supabase.table("rental").update({
             "end_time": datetime.now(timezone.utc).isoformat(),
-            "end_station_id": req.station_id  # ✅ Fixed
+            "end_station_id": req.station_id  # ✅ Changed from req.station_ID
         }).eq("id", rental_id).execute()
 
         supabase.table("bikes").update({"status": "available"}).eq("id", bike_id).execute()
