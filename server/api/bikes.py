@@ -18,7 +18,7 @@ router = APIRouter(prefix="/bikes", tags=["ESP Lock"])
 logger = logging.getLogger(__name__)
 
 class EspStationUpdateRequest(BaseModel):
-    station_id: int  # ✅ Changed from station_ID
+    station_id: int  
     slots: dict[str, int | None]  
 
 class EspUserStatusRequest(BaseModel):
@@ -27,7 +27,7 @@ class EspUserStatusRequest(BaseModel):
 class EspBorrowRequest(BaseModel):
     uin: int
     bike_id: int
-    station_id: int | None = None  # ✅ Changed from station_ID
+    station_id: int | None = None  
 
 class EspUserBikeCheckRequest(BaseModel):
     uin: int
@@ -35,7 +35,7 @@ class EspUserBikeCheckRequest(BaseModel):
 
 class EspReturnedRequest(BaseModel):
     uin: int
-    station_id: int | None = None  # ✅ Changed from station_ID
+    station_id: int | None = None  
     
 @router.post("/station-update")
 async def station_update(req: EspStationUpdateRequest):
@@ -45,7 +45,7 @@ async def station_update(req: EspStationUpdateRequest):
 
             slot_lookup = supabase.table("slots") \
                 .select("id") \
-                .eq("station_id", req.station_id) \  # ✅ Already correct
+                .eq("station_id", req.station_id) \ 
                 .eq("slot_number", slot_number) \
                 .execute()
 
@@ -91,7 +91,7 @@ async def set_user_borrowing(req: EspBorrowRequest):
         rental_data = {
             "user_uin": req.uin,
             "bike_id": req.bike_id,
-            "start_station_id": req.station_id,  # ✅ Changed from req.station_ID
+            "start_station_id": req.station_id,  
             "start_time": datetime.now(timezone.utc).isoformat()
         }
         supabase.table("rental").insert(rental_data).execute()
@@ -144,7 +144,7 @@ async def set_user_returned(req: EspReturnedRequest):
 
         supabase.table("rental").update({
             "end_time": datetime.now(timezone.utc).isoformat(),
-            "end_station_id": req.station_id  # ✅ Changed from req.station_ID
+            "end_station_id": req.station_id  
         }).eq("id", rental_id).execute()
 
         supabase.table("bikes").update({"status": "available"}).eq("id", bike_id).execute()
