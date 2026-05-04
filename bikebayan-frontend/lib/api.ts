@@ -95,3 +95,21 @@ export const getUserStatus = async (uin: number) => {
   const res = await api.get(`/api/users/${uin}/status`);
   return res.data; // { status: "Borrowing" | "Cleared" | "Flagged" }
 };
+
+// 🔐 Login
+export const loginUser = async (email: string, password: string) => {
+  const res = await api.post("/users/login", { email, password });
+  return res.data; // { success: true, uin: "...", name: "...", email: "...", status: "..." }
+};
+
+// Get user profile
+export const getUser = async (uin: string) => {
+  const res = await api.get(`/users/users/${uin}`);
+  return res.data;
+};
+
+// Update user (for setting password after QR scan)
+export const updateUser = async (uin: string, data: { email?: string; password?: string; name?: string }) => {
+  const res = await api.put(`/users/${uin}`, data);
+  return res.data;
+};

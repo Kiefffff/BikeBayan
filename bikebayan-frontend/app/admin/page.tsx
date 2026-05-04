@@ -1,5 +1,4 @@
-// app/admin/page.tsx
-"use client"; // ✅ MUST be first line, before imports
+"use client"; 
 
 import { useState, useEffect } from "react";
 import { getStations } from "@/lib/api";
