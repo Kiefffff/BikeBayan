@@ -30,7 +30,6 @@ class VerifyRequest(BaseModel):
     uin: str
     dob: str
     name: str
-    email: str
 
 @router.post("/verify")
 async def verify_scan(req: VerifyRequest):
@@ -38,7 +37,6 @@ async def verify_scan(req: VerifyRequest):
         uin = req.uin
         dob = req.dob
         name = req.name
-        email = req.email
 
         logging.info(f"Received data: UIN={uin}, DOB={dob}, Name={name}")
 

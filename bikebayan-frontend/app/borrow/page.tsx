@@ -1,6 +1,7 @@
+// app/borrow/page.tsx
 "use client";
 import { useState } from "react";
-import { verifyOTP } from "@/lib/api";
+import { verifyOTP, getUserStatus } from "@/lib/api";
 import { Mail, Lock, CheckCircle, AlertCircle, Bike } from "lucide-react";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
@@ -9,6 +10,7 @@ export default function BorrowPage() {
   const [step, setStep] = useState<"verify" | "success">("verify");
   const [email, setEmail] = useState("");
   const [otp, setOtp] = useState("");
+  const [uin, setUin] = useState<string>(""); // Store UIN after verification
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -25,7 +27,15 @@ export default function BorrowPage() {
     setError("");
 
     try {
-      await verifyOTP(cleanEmail, cleanOtp);
+      // Verify OTP - backend returns UIN on success
+      const result = await verifyOTP(cleanEmail, cleanOtp);
+      
+      // Store UIN for redirect (backend should return it, or we fetch it)
+      // For now, we'll fetch it separately if needed
+      if (result.uin) {
+        setUin(result.uin.toString());
+      }
+      
       setStep("success");
     } catch (err: any) {
       setError(err.message || "Verification failed. Please try again.");
@@ -33,6 +43,14 @@ export default function BorrowPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleReset = () => {
+    setStep("verify");
+    setEmail("");
+    setOtp("");
+    setUin("");
+    setError("");
   };
 
   const isEmailValid = email.trim().includes("@");
@@ -106,19 +124,26 @@ export default function BorrowPage() {
 
         {step === "success" && (
           <div className="bg-white p-6 rounded-2xl shadow-lg text-center">
-            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <CheckCircle className="w-8 h-8 text-green-600" />
-            </div>
-            <h2 className="text-2xl font-bold mb-2">Verification Complete!</h2>
-            <p className="text-gray-600 mb-6">
-              Your identity has been verified. You can now select and unlock a bike.
+            <CheckCircle className="w-12 h-12 text-green-600 mx-auto mb-3" />
+            <h2 className="text-xl font-bold mb-2">Verification Complete!</h2>
+            <p className="text-gray-600 mb-4">
+              Your identity is confirmed. Select a bike to continue.
             </p>
-            <button
-              onClick={() => alert("Redirecting to bike selection...")}
-              className="w-full bg-green-600 text-white py-3 rounded-xl font-bold hover:bg-green-700 flex items-center justify-center"
+            
+            {/* Redirect to bike selection with params */}
+            <Link 
+              href={`/borrow/select-bike?station=1${uin ? `&uin=${uin}` : ''}`} 
+              className="block w-full bg-green-600 text-white py-3 rounded-xl font-bold hover:bg-green-700 flex items-center justify-center gap-2"
             >
-              <Bike className="w-5 h-5 mr-2" />
+              <Bike className="w-5 h-5" />
               Select a Bike
+            </Link>
+            
+            <button
+              onClick={handleReset}
+              className="w-full mt-3 text-gray-600 py-2 text-sm hover:text-gray-800"
+            >
+              Start Over
             </button>
           </div>
         )}

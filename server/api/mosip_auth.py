@@ -61,7 +61,6 @@ async def generate_otp(req: OTPRequest):
 @router.post("/verify-otp")
 async def verify_otp(req: VerifyRequest):
     try:
-        # ✅ FIXED: Complete the .data check
         user_lookup = supabase.table("user").select("uin").eq("email", req.email).execute()
         if not user_lookup.data:
             raise HTTPException(status_code=404, detail="User not found")
