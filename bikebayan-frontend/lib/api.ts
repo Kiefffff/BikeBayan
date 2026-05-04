@@ -113,3 +113,9 @@ export const updateUser = async (uin: string, data: { email?: string; password?:
   const res = await api.put(`/users/${uin}`, data);
   return res.data;
 };
+
+// 🔐 Password Setup (after first scan)
+export const setupPassword = async (token: string, password: string) => {
+  const res = await api.post("/api/verify/setup-password", { token, password });
+  return res.data; // { success: true, message: "..." }
+};
