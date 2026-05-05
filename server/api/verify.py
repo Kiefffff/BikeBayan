@@ -1,7 +1,5 @@
-# server/api/verify.py
 import os
 import logging
-from datetime import datetime
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from mosip_auth_sdk.models import DemographicsModel
@@ -9,7 +7,6 @@ from mosip_auth_sdk import MOSIPAuthenticator
 from dynaconf import Dynaconf
 from supabase import create_client, Client
 from dotenv import load_dotenv
-
 router = APIRouter(prefix="/verify", tags=["default"])
 
 load_dotenv()
@@ -31,7 +28,7 @@ class VerifyRequest(BaseModel):
 async def verify_scan(req: VerifyRequest):
     """
     Called by ESP after National ID scan.
-    Flow: ESP extracts UIN → MOSIP verify → Create/update user record → Return success
+    Flow: ESP extracts UIN → MOSIP verify → Decrypt KYC → Create/update user record → Return success
     """
     try:
         uin = req.uin
@@ -40,52 +37,73 @@ async def verify_scan(req: VerifyRequest):
 
         logging.info(f"Verify scan: UIN={uin}")
 
-        # 1. MOSIP demographic verification
+        # 1. Package demographics data for Demo Auth
         name_list = [{"language": "eng", "value": name}] if name else None
         demographics_data = DemographicsModel(name=name_list, dob=dob)
 
         authenticator = get_authenticator()
-        response = authenticator.auth(
+
+        # 2. Call KYC instead of standard Auth
+        response = authenticator.kyc(
             individual_id=uin,
             individual_id_type="UIN",
             demographic_data=demographics_data,
             consent=True,
         )
 
-        data = response.json()
-        auth_status = data.get("response", {}).get("authStatus", False)
-        if not auth_status:
+        kyc_response_body = response.json()
+
+        # Check for MOSIP errors
+        if "errors" in kyc_response_body and kyc_response_body["errors"]:
+            logging.error(f"MOSIP KYC Failed: {kyc_response_body['errors']}")
             raise HTTPException(status_code=401, detail="MOSIP verification failed")
 
-        # 2. Create or update user record (no email needed)
+        # 3. Decrypt and Extract the Data
+        decrypted_response = authenticator.decrypt_response(kyc_response_body)
+
+        extracted_email = decrypted_response.get("email") or decrypted_response.get("emailId")
+        extracted_name = decrypted_response.get("name_eng")
+
+        # Fallback for name based on standard multi-language list just in case the policy format changes later
+        raw_name = decrypted_response.get("name")
+        if not extracted_name:
+            if isinstance(raw_name, list) and len(raw_name) > 0:
+                extracted_name = raw_name[0].get("value")
+            elif isinstance(raw_name, str):
+                extracted_name = raw_name
+
+        # Use MOSIP verified name if available, otherwise fallback to the physical scanned name
+        final_name = extracted_name if extracted_name else name
+
+        # 4. Create or update user record in Supabase
         user = supabase.table("user").select("*").eq("uin", uin).execute()
         
         if not user.data:
             # New user
             supabase.table("user").insert({
                 "uin": int(uin),
-                "name": name,
+                "name": final_name,
+                "email": extracted_email,
                 "status": "Cleared",
-                "created_at": datetime.now().isoformat()
             }).execute()
-            logging.info(f"✅ Created user for UIN={uin}")
+            logging.info(f"Created user for UIN={uin} with email={extracted_email}")
         else:
-            # Existing user - just update name if changed
+            # Existing user - update name and email[cite: 1]
             supabase.table("user").update({
-                "name": name,
-                "last_seen": datetime.now().isoformat()
+                "name": final_name,
+                "email": extracted_email,
             }).eq("uin", uin).execute()
-            logging.info(f"✅ Updated user for UIN={uin}")
+            logging.info(f"Updated user for UIN={uin} with email={extracted_email}")
 
         return {
             "result": "Truth",
             "status": "verified",
             "uin": uin,
-            "message": "Identity verified. Proceed to OTP."
+            "message": "Identity verified and data extracted."
         }
 
     except HTTPException:
         raise
     except Exception as e:
-        logging.error(f"❌ Verify scan failed: {e}")
+        logging.error(f"Verify scan failed: {e}")
         raise HTTPException(status_code=500, detail="Server error")
