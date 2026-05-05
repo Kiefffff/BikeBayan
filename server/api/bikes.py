@@ -40,18 +40,16 @@ class EspReturnedRequest(BaseModel):
 @router.post("/station-update")
 async def station_update(req: EspStationUpdateRequest):
     try:
-        for slot_number_str, bike_id in req.slots.items():
-            slot_number = int(slot_number_str)
+        for slot_id_str, bike_id in req.slots.items():
+            slot_id = int(slot_id_str)
             
-            # Use parentheses for implicit line continuation (cleaner than \)
             slot_lookup = supabase.table("slots").select("id").eq(
                 "station_id", req.station_id
-            ).eq("slot_number", slot_number).execute()
+            ).eq("id", slot_id).execute()
 
             if not slot_lookup.data:
                 continue 
 
-            slot_id = slot_lookup.data[0]['id']
             supabase.table("slots").update({"occupied_bike": bike_id}).eq(
                 "id", slot_id
             ).execute()
