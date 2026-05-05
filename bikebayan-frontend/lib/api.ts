@@ -15,10 +15,10 @@ export const generateOTP = async (uin: string) => {
   return res.data;
 };
 
-// Accept UIN + OTP + transactionId
-export const verifyOTP = async (uin: string, otp: string, transactionId: string) => {
-  const res = await api.post("/api/auth/verify-otp", { uin, otp, transaction_id: transactionId });
-  return res.data;
+// MOSIP OTP Verification (Email + OTP)
+export const verifyOTP = async (email: string, otp: string) => {
+  const res = await api.post("/api/auth/verify-otp", { email, otp });
+  return res.data; // { success: true, uin: "...", ... }
 };
 
 // 👤 User Status
