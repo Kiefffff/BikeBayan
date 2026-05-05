@@ -45,7 +45,7 @@ async def get_station_bikes(station_id: int):
         response = supabase.table("slots").select("*").eq("station_id", station_id).execute()
         slots = []
         for slot in response.data:
-            if slot["occupied_bike"] is not None:
+            if slot["occupied_bike"] not in [None, 0]:
                 slots.append(slot["occupied_bike"])
 
         return {"bikes": slots}
