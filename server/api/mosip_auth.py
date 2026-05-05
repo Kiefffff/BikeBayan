@@ -50,7 +50,20 @@ async def generate_otp(req: OTPRequest):
             email=(req.channel == "email"),
             phone=(req.channel == "sms")
         )
+        
         data = resp.json()
+        
+        # FOR DEBUGGING TO CHECK Log FULL response
+        logger.info("=" * 50)
+        logger.info("MOSIP FULL RESPONSE:")
+        logger.info(f"Raw data: {data}")
+        logger.info(f"Keys in response: {data.keys()}")
+        if "response" in data:
+            logger.info(f"Response keys: {data['response'].keys()}")
+            logger.info(f"Email field: {data['response'].get('email')}")
+            logger.info(f"Phone field: {data['response'].get('phone')}")
+        logger.info("=" * 50)
+        
         otp_transactions[req.uin] = data["transactionID"]
         logger.info(f"OTP generated for UIN={req.uin}")
         return {"success": True, "transaction_id": data["transactionID"]}

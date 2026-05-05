@@ -1,52 +1,43 @@
-"use client"; 
-
+"use client";
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { getStations } from "@/lib/api";
 import { Bike, AlertTriangle, Users, MapPin, RefreshCw, Flag, Lock, LogOut } from "lucide-react";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
 
-// 🔐 Hardcoded admin password
-const ADMIN_PASSWORD = "RafaButt67";
+const ADMIN_EMAIL = "admin@bikebayan.ph";
 
 export default function AdminPage() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [password, setPassword] = useState("");
-  const [passwordError, setPasswordError] = useState("");
+  const router = useRouter();
+  const [user, setUser] = useState<any>(null);
   const [stations, setStations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
   const [flaggedUsers, setFlaggedUsers] = useState<any[]>([]);
   const [reports, setReports] = useState<any[]>([
     { id: 1, bike_id: 101, issue: "Broken brake", reported_by: "user_123", status: "pending" },
   ]);
 
-  // Check auth on load
+  // Check if admin on mount
   useEffect(() => {
-    const auth = localStorage.getItem("admin_authenticated");
-    if (auth === "true") {
-      setIsAuthenticated(true);
-      fetchStations();
+    const storedUser = localStorage.getItem("user");
+    if (!storedUser) {
+      router.push("/login");
+      return;
     }
-  }, []);
 
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (password === ADMIN_PASSWORD) {
-      setIsAuthenticated(true);
-      localStorage.setItem("admin_authenticated", "true");
-      setPasswordError("");
-      fetchStations();
-    } else {
-      setPasswordError("Incorrect password");
-      setPassword("");
+    const userData = JSON.parse(storedUser);
+    if (userData.email !== ADMIN_EMAIL) {
+      router.push("/");
+      return;
     }
-  };
+
+    setUser(userData);
+    fetchStations();
+  }, [router]);
 
   const handleLogout = () => {
-    setIsAuthenticated(false);
-    localStorage.removeItem("admin_authenticated");
-    setPassword("");
+    localStorage.removeItem("user");
+    router.push("/login");
   };
 
   const fetchStations = async () => {
@@ -55,59 +46,21 @@ export default function AdminPage() {
       const data = await getStations();
       setStations(data.stations || []);
     } catch {
-      setError("Failed to fetch stations");
+      console.error("Failed to fetch stations");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleResolveReport = (reportId: number) => {
-    setReports(prev => prev.map(r => 
-      r.id === reportId ? { ...r, status: "resolved" } : r
-    ));
-  };
-
-  // 🔐 LOGIN SCREEN
-  if (!isAuthenticated) {
+  // Show loading while checking auth
+  if (!user) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-        <div className="max-w-md w-full bg-white p-8 rounded-2xl shadow-lg">
-          <div className="text-center mb-6">
-            <Lock className="w-12 h-12 text-blue-600 mx-auto mb-3" />
-            <h1 className="text-2xl font-bold text-gray-900">Admin Access</h1>
-            <p className="text-gray-600 text-sm mt-2">Enter password to continue</p>
-          </div>
-
-          <form onSubmit={handleLogin} className="space-y-4">
-            {passwordError && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded text-sm">
-                {passwordError}
-              </div>
-            )}
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-blue-500"
-              placeholder="Enter admin password"
-              autoFocus
-            />
-            <button
-              type="submit"
-              className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 transition"
-            >
-              Login
-            </button>
-            <Link href="/" className="block text-center text-gray-600 hover:text-gray-800 text-sm">
-              ← Back to Home
-            </Link>
-          </form>
-        </div>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <p className="text-gray-600">Checking access...</p>
       </div>
     );
   }
 
-  // ✅ ADMIN DASHBOARD
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Navbar */}
@@ -115,7 +68,7 @@ export default function AdminPage() {
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <Link href="/" className="text-gray-600 hover:text-blue-600">
-              <ArrowLeft className="w-5 h-5" />
+              ← Back to Home
             </Link>
             <h1 className="text-xl font-bold text-gray-900">🔧 Admin Dashboard</h1>
           </div>
@@ -139,13 +92,7 @@ export default function AdminPage() {
       </nav>
 
       <div className="max-w-7xl mx-auto p-4 md:p-8">
-        {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-6">
-            {error}
-          </div>
-        )}
-
-        {/* Stats */}
+        {/* Stats Overview */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           <div className="bg-white p-4 rounded-xl shadow-sm border">
             <div className="flex items-center gap-3">
@@ -195,7 +142,7 @@ export default function AdminPage() {
           </div>
           <div className="p-6">
             {loading ? (
-              <p className="text-gray-500">Loading...</p>
+              <p className="text-gray-500">Loading stations...</p>
             ) : (
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {stations.map(station => (
@@ -235,45 +182,11 @@ export default function AdminPage() {
                       <p className="font-medium">Bike #{report.bike_id}</p>
                       <p className="text-sm text-gray-600">{report.issue}</p>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <span className={`text-xs px-2 py-1 rounded-full ${
-                        report.status === "pending" ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700'
-                      }`}>
-                        {report.status}
-                      </span>
-                      {report.status === "pending" && (
-                        <button 
-                          onClick={() => handleResolveReport(report.id)}
-                          className="text-sm text-blue-600 hover:underline"
-                        >
-                          Resolve
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Flagged Users */}
-        <div className="bg-white rounded-2xl shadow-sm border">
-          <div className="p-6 border-b">
-            <h2 className="text-lg font-bold flex items-center gap-2">
-              <Flag className="w-5 h-5 text-red-600" />
-              Flagged Users
-            </h2>
-          </div>
-          <div className="p-6">
-            {flaggedUsers.length === 0 ? (
-              <p className="text-gray-500">No flagged users.</p>
-            ) : (
-              <div className="space-y-3">
-                {flaggedUsers.map((user, idx) => (
-                  <div key={idx} className="p-4 border rounded-xl bg-red-50">
-                    <p className="font-medium">UIN: {user.uin}</p>
-                    <p className="text-sm text-gray-600">Flagged: {new Date(user.flagged_at).toLocaleString()}</p>
+                    <span className={`text-xs px-2 py-1 rounded-full ${
+                      report.status === "pending" ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700'
+                    }`}>
+                      {report.status}
+                    </span>
                   </div>
                 ))}
               </div>
