@@ -115,20 +115,22 @@ async def verify_otp(req: VerifyRequest):
         logger.error(f"Verification failed: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.get("/check-status/{uin}")
-async def check_auth_status(uin: str):
+@router.post("/check-status")
+async def check_auth_status(req: OTPRequest):
     """
     ESP calls this endpoint repeatedly to check if the frontend successfully verified the OTP.
     """
-    # Check if the uin exists in our status tracker
-    if uin not in esp_auth_status:
-        return {"no active session"}
-        
-    is_verified = esp_auth_status[uin]
-    
-    if is_verified:
-        # Once the ESP knows it's successful, we clear it from memory so it doesn't stay unlocked forever
-        esp_auth_status.pop(uin, None)
-        return {"success"}
-    else:
-        return {"pending"}
+    try:
+        uin = req.uin
+        if uin not in esp_auth_status:
+            return PlainTextResponse("no active session")
+
+        is_verified = esp_auth_status[uin]
+        if is_verified:
+            esp_auth_status.pop(uin, None)
+            return PlainTextResponse("success")
+        else:
+            return PlainTextResponse("pending")
+    except Exception as e:
+        logger.error(f"Verification failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))

@@ -30,7 +30,6 @@ class EspBorrowRequest(BaseModel):
 
 class EspUserBikeCheckRequest(BaseModel):
     uin: int
-    rfid: str
 
 class EspReturnedRequest(BaseModel):
     uin: int
@@ -107,12 +106,12 @@ async def set_user_borrowing(req: EspBorrowRequest):
         logger.error(f"Set Borrowing failed: {e}")
         return PlainTextResponse("-1")
 
-
-@router.get("/user-bike-check/{uin}")
-async def user_bike_check(uin: str):
+# good
+@router.post("/user-bike-check")
+async def user_bike_check(req: EspUserBikeCheckRequest):
     try:
         active_rental = supabase.table("rental").select("bike_id").eq(
-            "user_uin", uin
+            "user_uin", req.uin
         ).is_("end_time", None).execute()
 
         if not active_rental.data:
