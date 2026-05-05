@@ -30,7 +30,7 @@ def verify_scan():
         # Build the demographics model
         name_list = [{"language": "eng", "value": name}] if name else None
         demographics_data = DemographicsModel(
-            name=name_list,
+            name=name_list, # type: ignore
             dob=dob
         )
 
