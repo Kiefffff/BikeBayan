@@ -36,7 +36,7 @@ class EspReturnedRequest(BaseModel):
     uin: int
     station_id: int | None = None
 
-
+# good
 @router.post("/station-update")
 async def station_update(req: EspStationUpdateRequest):
     try:
@@ -59,7 +59,7 @@ async def station_update(req: EspStationUpdateRequest):
         logger.error(f"Station Update failed: {e}")
         return PlainTextResponse("-1")
 
-
+# good
 @router.post("/user-status")
 async def user_status_check(req: EspUserStatusRequest):
     try:
@@ -108,11 +108,11 @@ async def set_user_borrowing(req: EspBorrowRequest):
         return PlainTextResponse("-1")
 
 
-@router.post("/user-bike-check")
-async def user_bike_check(req: EspUserBikeCheckRequest):
+@router.get("/user-bike-check/{uin}")
+async def user_bike_check(uin: str, rfid: str):
     try:
         bike_lookup = supabase.table("bikes").select("id").eq(
-            "rfid", req.rfid
+            "rfid", rfid
         ).execute()
 
         if not bike_lookup.data:
@@ -121,7 +121,7 @@ async def user_bike_check(req: EspUserBikeCheckRequest):
         rfid_bike_id = bike_lookup.data[0]['id']
 
         active_rental = supabase.table("rental").select("bike_id").eq(
-            "user_uin", req.uin
+            "user_uin", uin
         ).is_("end_time", None).execute()
 
         if not active_rental.data:
