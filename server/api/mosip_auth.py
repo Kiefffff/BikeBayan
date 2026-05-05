@@ -47,6 +47,11 @@ class VerifyRequest(BaseModel):
 @router.post("/generate-otp")
 async def generate_otp(req: OTPRequest):
     try:
+        # check if UIN exists
+        user = supabase.table("user").select("uin").eq("uin", req.uin).execute()
+        if not user.data:
+            raise HTTPException(status_code=400, detail="Invalid UIN")
+
         auth = get_authenticator()
         resp = auth.genotp(
             individual_id=req.uin,
@@ -127,6 +132,11 @@ async def check_auth_status(req: OTPRequest):
     ESP calls this endpoint repeatedly to check if the frontend successfully verified the OTP.
     """
     try:
+        # check if UIN exists
+        user = supabase.table("user").select("uin").eq("uin", req.uin).execute()
+        if not user.data:
+            raise HTTPException(status_code=400, detail="Invalid UIN")
+
         uin = req.uin
         if uin not in esp_auth_status:
             return PlainTextResponse("no active session")
