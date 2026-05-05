@@ -1,6 +1,7 @@
-
+# server/api/verify.py
 import os
 import logging
+from datetime import datetime
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from mosip_auth_sdk.models import DemographicsModel
@@ -8,10 +9,8 @@ from mosip_auth_sdk import MOSIPAuthenticator
 from dynaconf import Dynaconf
 from supabase import create_client, Client
 from dotenv import load_dotenv
-from passlib.context import CryptContext
 
 router = APIRouter(prefix="/verify", tags=["default"])
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 load_dotenv()
 supabase: Client = create_client(
@@ -27,20 +26,30 @@ class VerifyRequest(BaseModel):
     uin: str
     dob: str
     name: str
-    email: str
+    email: str  # ✅ Email from user's registered account
 
 @router.post("/verify")
 async def verify_scan(req: VerifyRequest):
-    """Auto-create account with default password - NO setup token"""
+    """
+    Called by ESP after National ID scan.
+    
+    Flow:
+    1. User registered first at /register (has email + password in DB, uin=null)
+    2. User logs in, goes to station, clicks "Borrow"
+    3. ESP scans QR → extracts UIN, name, DOB
+    4. ESP calls this endpoint with {uin, dob, name, email}
+    5. Backend: MOSIP verify + lookup user by EMAIL + link UIN
+    6. Returns success → ESP triggers OTP generation
+    """
     try:
         uin = req.uin
         dob = req.dob
         name = req.name
         email = req.email
 
-        logging.info(f"Received: UIN={uin}, Email={email}")
+        logging.info(f"Verify scan: UIN={uin}, Email={email}")
 
-        # 1. MOSIP demographic verification
+        # 1. MOSIP demographic verification (uin + name + dob)
         name_list = [{"language": "eng", "value": name}] if name else None
         demographics_data = DemographicsModel(name=name_list, dob=dob)
 
@@ -53,46 +62,46 @@ async def verify_scan(req: VerifyRequest):
         )
 
         data = response.json()
+        logging.info(f"MOSIP Response: {data}")
+
         auth_status = data.get("response", {}).get("authStatus", False)
         if not auth_status:
             raise HTTPException(status_code=401, detail="MOSIP verification failed")
 
-        # 2. Check if user already exists
-        existing = supabase.table("user").select("*").eq("uin", uin).execute()
-        if existing.
-            return {
-                "result": "Truth", 
-                "status": "exists", 
-                "message": "User already registered"
-            }
+        # 2. Look up user by EMAIL (user registered first via /register)
+        user_lookup = supabase.table("user").select("*").eq("email", email).execute()
         
-        # 3. Generate simple default password (easy to type on LCD)
-        default_password = "bike" + uin[-4:]  # e.g., "bike5308"
-        hashed_password = pwd_context.hash(default_password)
+        if not user_lookup.data:
+            raise HTTPException(
+                status_code=404, 
+                detail="User not registered. Please create account at bikebayan.ph/register first"
+            )
         
-        # 4. Auto-create account with default password
-        supabase.table("user").insert({
-            "uin": int(uin), 
-            "name": name,
-            "email": email,
-            "password": hashed_password,  # ✅ Hashed default password
-            "status": "Cleared",
-            "created_at": datetime.now().isoformat(),
-            "first_login": True  # Flag to prompt password change
-        }).execute()
+        user_data = user_lookup.data[0]
         
-        logging.info(f"Account created for UIN={uin} with default password")
-        
-        # 5. Return default password for LCD display
+        # 3. Link UIN to user's account (if not already linked)
+        if not user_data.get("uin"):
+            supabase.table("user").update({
+                "uin": int(uin),
+                "linked_at": datetime.now().isoformat()
+            }).eq("email", email).execute()
+            logging.info(f"✅ Linked UIN {uin} to email {email}")
+        elif str(user_data["uin"]) != uin:
+            # Security: UIN mismatch
+            logging.warning(f"⚠️ UIN mismatch: DB={user_data['uin']}, Scan={uin}")
+            raise HTTPException(status_code=400, detail="UIN mismatch - contact support")
+
+        # 4. Return success - ESP will now call generate-otp with this UIN
         return {
-            "result": "Truth", 
-            "status": "created",
-            "default_password": default_password,  # ✅ Show on LCD
-            "message": "Account created. Login with email + temp password."
+            "result": "Truth",
+            "status": "verified",
+            "uin": uin,
+            "email": email,
+            "message": "Identity verified. OTP will be sent to registered email."
         }
 
     except HTTPException:
         raise
     except Exception as e:
-        logging.error(f"Verification failed: {e}")
+        logging.error(f"❌ Verify scan failed: {e}")
         raise HTTPException(status_code=500, detail="Server error")
