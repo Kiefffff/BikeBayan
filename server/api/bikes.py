@@ -109,17 +109,8 @@ async def set_user_borrowing(req: EspBorrowRequest):
 
 
 @router.get("/user-bike-check/{uin}")
-async def user_bike_check(uin: str, rfid: str):
+async def user_bike_check(uin: str):
     try:
-        bike_lookup = supabase.table("bikes").select("id").eq(
-            "rfid", rfid
-        ).execute()
-
-        if not bike_lookup.data:
-            return PlainTextResponse("-1")
-
-        rfid_bike_id = bike_lookup.data[0]['id']
-
         active_rental = supabase.table("rental").select("bike_id").eq(
             "user_uin", uin
         ).is_("end_time", None).execute()
@@ -127,12 +118,7 @@ async def user_bike_check(uin: str, rfid: str):
         if not active_rental.data:
             return PlainTextResponse("-1")
 
-        rented_bike_id = active_rental.data[0]['bike_id']
-
-        if rfid_bike_id != rented_bike_id:
-            return PlainTextResponse("-1")
-
-        return PlainTextResponse(str(rfid_bike_id))
+        return PlainTextResponse(str(active_rental.data[0]['bike_id']))
     except Exception as e:
         logger.error(f"User Bike Check failed: {e}")
         return PlainTextResponse("-1")
