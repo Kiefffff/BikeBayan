@@ -1,4 +1,5 @@
 from fastapi import APIRouter, HTTPException
+from fastapi.responses import PlainTextResponse
 from pydantic import BaseModel
 from mosip_auth_sdk import MOSIPAuthenticator
 from dynaconf import Dynaconf
@@ -63,7 +64,7 @@ async def generate_otp(req: OTPRequest):
         esp_auth_status[req.uin] = False
         
         logger.info(f"OTP generated for UIN={req.uin}")
-        return {"success": True, "transaction_id": data["transactionID"]}
+        return PlainTextResponse("success")
     except Exception as e:
         logger.error(f"OTP generation failed: {e}")
         raise HTTPException(status_code=500, detail=str(e))
