@@ -1,26 +1,27 @@
+// app/page.tsx
 "use client";
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { Shield, MapPin, Clock, Bike, User, LogOut } from "lucide-react";
+import { Shield, MapPin, Clock, Bike } from "lucide-react";
 
 export default function Home() {
-  const router = useRouter();
-  const [user, setUser] = useState<any>(null);
+  const [hasSession, setHasSession] = useState(false);
 
   useEffect(() => {
-    const storedUser = localStorage.getItem("user");
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
+    // Check if user has active session from email+OTP verification
+    const stored = localStorage.getItem("user");
+    if (stored) {
+      try {
+        const user = JSON.parse(stored);
+        if (user.email && user.verified_at) {
+          setHasSession(true);
+        }
+      } catch {
+        localStorage.removeItem("user");
+      }
     }
   }, []);
-
-  const handleLogout = () => {
-    localStorage.removeItem("user");
-    setUser(null);
-    router.push("/");
-  };
 
   return (
     <div className="min-h-screen bg-white">
@@ -31,28 +32,14 @@ export default function Home() {
             <Image src="/bikebayan-logo.svg" alt="BikeBayan" width={120} height={36} />
           </Link>
           <div className="flex items-center gap-6">
-            {user ? (
-              <>
-                <span className="text-sm text-gray-600">Hi, {user.name}</span>
-                {user.isAdmin && (
-                  <Link href="/admin" className="text-purple-600 hover:text-purple-700 font-medium">
-                    Admin
-                  </Link>
-                )}
-                <button 
-                  onClick={handleLogout}
-                  className="flex items-center gap-1 text-gray-600 hover:text-red-600 font-medium transition"
-                >
-                  <LogOut className="w-4 h-4" />
-                  Logout
-                </button>
-              </>
-            ) : (
-              <Link href="/login" className="flex items-center gap-1 text-gray-600 hover:text-blue-600 font-medium transition">
-                <User className="w-4 h-4" />
-                Login
-              </Link>
-            )}
+            {/* ✅ FIXED: Link to admin login, not dashboard directly */}
+            <Link 
+              href="/admin/login" 
+              className="text-gray-600 hover:text-purple-600 font-medium text-sm flex items-center gap-1"
+            >
+              <Shield className="w-4 h-4" />
+              Admin
+            </Link>
           </div>
         </div>
       </nav>
@@ -70,16 +57,16 @@ export default function Home() {
           
           <div className="flex flex-col sm:flex-row justify-center gap-4">
             <Link 
-              href={user ? "/borrow" : "/login"}
+              href="/borrow"
               className="group relative bg-blue-600 text-white px-10 py-4 rounded-2xl font-bold text-lg hover:bg-blue-700 transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 flex items-center justify-center gap-3"
             >
               <Bike className="w-6 h-6 group-hover:animate-bounce" /> 
-              {user ? "Borrow a Bike" : "Login to Borrow"}
+              {hasSession ? "Continue Borrowing" : "Borrow a Bike"}
             </Link>
           </div>
           
           <p className="text-sm text-gray-500 mt-6">
-            Scan your National ID at any station to create an account
+            Scan National ID at station • Enter email + OTP to unlock
           </p>
         </div>
       </section>

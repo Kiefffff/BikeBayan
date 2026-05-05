@@ -11,13 +11,15 @@ export default function BorrowPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // Auto-fill email if user previously verified
   useEffect(() => {
     const stored = localStorage.getItem("user");
     if (stored) {
       try {
         const user = JSON.parse(stored);
-        if (user.email) setEmail(user.email);
+        if (user.email && user.verified_at && user.email !== "admin@bikebayan.ph") {
+          setStep("success");
+          setEmail(user.email);
+        }
       } catch {}
     }
   }, []);
@@ -35,11 +37,9 @@ export default function BorrowPage() {
     setError("");
 
     try {
-      // Step 4: Backend verifies via MOSIP
       const result = await verifyOTP(cleanEmail, cleanOtp);
       
       if (result.success) {
-        // Store session
         localStorage.setItem("user", JSON.stringify({
           email: cleanEmail,
           uin: result.uin || "verified",
@@ -87,23 +87,36 @@ export default function BorrowPage() {
             </p>
 
             <div className="space-y-4">
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-4 py-3 border rounded-xl"
-                placeholder="your@email.com"
-                disabled={loading}
-              />
-              <input
-                type="text"
-                value={otp}
-                onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                className="w-full px-4 py-3 border rounded-xl text-center text-2xl tracking-widest font-mono"
-                placeholder="••••••"
-                maxLength={6}
-                disabled={loading}
-              />
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="w-full pl-10 pr-4 py-3 border rounded-xl"
+                    placeholder="your@email.com"
+                    disabled={loading}
+                  />
+                </div>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">OTP (6 digits)</label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <input
+                    type="text"
+                    value={otp}
+                    onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                    className="w-full pl-10 pr-4 py-3 border rounded-xl text-center text-2xl tracking-widest font-mono"
+                    placeholder="••••••"
+                    maxLength={6}
+                    disabled={loading}
+                  />
+                </div>
+              </div>
             </div>
 
             <button

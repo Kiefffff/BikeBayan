@@ -1,43 +1,49 @@
+// app/admin/page.tsx
 "use client";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { getStations } from "@/lib/api";
-import { Bike, AlertTriangle, Users, MapPin, RefreshCw, Flag, Lock, LogOut } from "lucide-react";
+import { Bike, AlertTriangle, Users, MapPin, RefreshCw, LogOut } from "lucide-react";
 import Link from "next/link";
 
 const ADMIN_EMAIL = "admin@bikebayan.ph";
 
-export default function AdminPage() {
+export default function AdminDashboard() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
   const [stations, setStations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [flaggedUsers, setFlaggedUsers] = useState<any[]>([]);
-  const [reports, setReports] = useState<any[]>([
-    { id: 1, bike_id: 101, issue: "Broken brake", reported_by: "user_123", status: "pending" },
-  ]);
 
-  // Check if admin on mount
+  // Protect this route: only admin@bikebayan.ph can access
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
+    
     if (!storedUser) {
-      router.push("/login");
+      router.push("/admin/login");
       return;
     }
 
-    const userData = JSON.parse(storedUser);
-    if (userData.email !== ADMIN_EMAIL) {
-      router.push("/");
-      return;
-    }
+    try {
+      const userData = JSON.parse(storedUser);
+      
+      // Only allow admin email
+      if (userData.email !== ADMIN_EMAIL) {
+        router.push("/");
+        return;
+      }
 
-    setUser(userData);
-    fetchStations();
+      setUser(userData);
+      fetchStations();
+    } catch {
+      localStorage.removeItem("user");
+      router.push("/admin/login");
+    }
   }, [router]);
 
   const handleLogout = () => {
     localStorage.removeItem("user");
-    router.push("/login");
+    setUser(null);
+    router.push("/admin/login");
   };
 
   const fetchStations = async () => {
@@ -45,8 +51,8 @@ export default function AdminPage() {
     try {
       const data = await getStations();
       setStations(data.stations || []);
-    } catch {
-      console.error("Failed to fetch stations");
+    } catch (err) {
+      console.error("Failed to fetch stations:", err);
     } finally {
       setLoading(false);
     }
@@ -56,7 +62,7 @@ export default function AdminPage() {
   if (!user) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <p className="text-gray-600">Checking access...</p>
+        <p className="text-gray-600">Checking admin access...</p>
       </div>
     );
   }
@@ -92,6 +98,13 @@ export default function AdminPage() {
       </nav>
 
       <div className="max-w-7xl mx-auto p-4 md:p-8">
+        {/* Admin Banner */}
+        <div className="bg-purple-50 border border-purple-200 rounded-xl p-4 mb-8">
+          <p className="text-sm text-purple-800">
+            👋 Welcome, Admin • Signed in as <strong>{user.email}</strong>
+          </p>
+        </div>
+
         {/* Stats Overview */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           <div className="bg-white p-4 rounded-xl shadow-sm border">
@@ -116,7 +129,7 @@ export default function AdminPage() {
             <div className="flex items-center gap-3">
               <Users className="w-6 h-6 text-yellow-600" />
               <div>
-                <p className="text-2xl font-bold">{flaggedUsers.length}</p>
+                <p className="text-2xl font-bold">0</p>
                 <p className="text-xs text-gray-500">Flagged Users</p>
               </div>
             </div>
@@ -125,7 +138,7 @@ export default function AdminPage() {
             <div className="flex items-center gap-3">
               <AlertTriangle className="w-6 h-6 text-red-600" />
               <div>
-                <p className="text-2xl font-bold">{reports.filter(r => r.status === "pending").length}</p>
+                <p className="text-2xl font-bold">0</p>
                 <p className="text-xs text-gray-500">Pending Reports</p>
               </div>
             </div>
@@ -143,6 +156,8 @@ export default function AdminPage() {
           <div className="p-6">
             {loading ? (
               <p className="text-gray-500">Loading stations...</p>
+            ) : stations.length === 0 ? (
+              <p className="text-gray-500">No stations found. Add stations via Supabase.</p>
             ) : (
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {stations.map(station => (
@@ -156,37 +171,6 @@ export default function AdminPage() {
                       </span>
                     </div>
                     <p className="text-sm text-gray-600">Capacity: {station.total_capacity}</p>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Reports */}
-        <div className="bg-white rounded-2xl shadow-sm border mb-8">
-          <div className="p-6 border-b">
-            <h2 className="text-lg font-bold flex items-center gap-2">
-              <AlertTriangle className="w-5 h-5 text-yellow-600" />
-              Damage Reports
-            </h2>
-          </div>
-          <div className="p-6">
-            {reports.length === 0 ? (
-              <p className="text-gray-500">No reports yet.</p>
-            ) : (
-              <div className="space-y-3">
-                {reports.map(report => (
-                  <div key={report.id} className="flex items-center justify-between p-4 border rounded-xl">
-                    <div>
-                      <p className="font-medium">Bike #{report.bike_id}</p>
-                      <p className="text-sm text-gray-600">{report.issue}</p>
-                    </div>
-                    <span className={`text-xs px-2 py-1 rounded-full ${
-                      report.status === "pending" ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700'
-                    }`}>
-                      {report.status}
-                    </span>
                   </div>
                 ))}
               </div>
