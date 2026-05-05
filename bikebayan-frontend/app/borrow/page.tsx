@@ -1,40 +1,42 @@
+// app/borrow/page.tsx
 "use client";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { verifyOTP, getUserStatus, borrowBike } from "@/lib/api";
-import { Mail, Lock, CheckCircle, AlertCircle, Bike, LogOut } from "lucide-react";
+import { verifyOTP } from "@/lib/api";
+import { Lock, CheckCircle, AlertCircle, Bike } from "lucide-react";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
 
 export default function BorrowPage() {
   const router = useRouter();
-  const [user, setUser] = useState<any>(null);
-  const [step, setStep] = useState<"otp" | "success">("otp");
+  const [step, setStep] = useState<"verify" | "success">("verify");
+  const [uin, setUin] = useState("");
   const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // Check if user is logged in on mount
+  // Check for existing session on load
   useEffect(() => {
-    const storedUser = localStorage.getItem("user");
-    if (!storedUser) {
-      // Not logged in → redirect to login
-      router.push("/login");
-      return;
+    const stored = localStorage.getItem("user");
+    if (stored) {
+      try {
+        const user = JSON.parse(stored);
+        if (user.uin) {
+          // Session valid - auto-skip to success
+          setStep("success");
+          setUin(user.uin);
+        }
+      } catch {
+        localStorage.removeItem("user");
+      }
     }
-    setUser(JSON.parse(storedUser));
-  }, [router]);
+  }, []);
 
   const handleVerify = async () => {
+    const cleanUin = uin.replace(/\D/g, "");
     const cleanOtp = otp.replace(/\D/g, "");
     
-    if (cleanOtp.length !== 6) {
-      setError("Enter a valid 6-digit OTP");
-      return;
-    }
-
-    if (!user?.uin) {
-      setError("User not authenticated");
+    if (cleanUin.length !== 10 || cleanOtp.length !== 6) {
+      setError("Enter valid 10-digit UIN and 6-digit OTP");
       return;
     }
 
@@ -42,14 +44,14 @@ export default function BorrowPage() {
     setError("");
 
     try {
-      // Verify OTP using logged-in user's UIN
-      await verifyOTP(user.uin, cleanOtp, ""); // transactionId if needed
+      // Verify using UIN + OTP (MOSIP flow)
+      await verifyOTP(cleanUin, cleanOtp, "");
       
-      // Optional: Check user status
-      const status = await getUserStatus(user.uin);
-      if (status.status === "Borrowing") {
-        throw new Error("You already have an active rental.");
-      }
+      // Store session in localStorage
+      localStorage.setItem("user", JSON.stringify({ 
+        uin: cleanUin,
+        verified_at: new Date().toISOString()
+      }));
       
       setStep("success");
     } catch (err: any) {
@@ -60,43 +62,26 @@ export default function BorrowPage() {
     }
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem("user");
-    router.push("/login");
+  const handleReset = () => {
+    setStep("verify");
+    setUin("");
+    setOtp("");
+    setError("");
   };
 
+  const isUinValid = uin.replace(/\D/g, "").length === 10;
   const isOtpValid = otp.replace(/\D/g, "").length === 6;
-  const canSubmit = isOtpValid && !loading;
-
-  // Show loading while checking auth
-  if (!user) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <p className="text-gray-600">Redirecting to login...</p>
-      </div>
-    );
-  }
+  const canSubmit = isUinValid && isOtpValid && !loading;
 
   return (
     <div className="min-h-screen bg-gray-50 p-4 flex items-center justify-center">
       <div className="max-w-md w-full">
-        {/* Header with logout */}
-        <div className="flex items-center justify-between mb-6">
-          <Link href="/" className="inline-flex items-center text-gray-600">
-            <ArrowLeft className="w-4 h-4 mr-2" /> Back to Home
-          </Link>
-          <button 
-            onClick={handleLogout}
-            className="flex items-center text-sm text-red-600 hover:text-red-700"
-          >
-            <LogOut className="w-4 h-4 mr-1" /> Logout
-          </button>
-        </div>
+        <Link href="/" className="inline-flex items-center text-gray-600 mb-6">
+          ← Back to Home
+        </Link>
 
         <h1 className="text-3xl font-bold text-center mb-2">🚲 Borrow a Bike</h1>
-        <p className="text-gray-600 text-center mb-8">
-          Welcome, {user.name} • UIN: {user.uin}
-        </p>
+        <p className="text-gray-600 text-center mb-8">Enter your UIN and OTP</p>
 
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-6">
@@ -105,30 +90,40 @@ export default function BorrowPage() {
           </div>
         )}
 
-        {step === "otp" && (
+        {step === "verify" && (
           <div className="bg-white p-6 rounded-2xl shadow-lg">
             <h2 className="text-xl font-bold mb-4 flex items-center">
               <Lock className="w-5 h-5 mr-2 text-blue-600" />
-              Verify with OTP
+              Verify Identity
             </h2>
             <p className="text-gray-600 text-sm mb-4">
-              Enter the 6-digit OTP sent to <strong>{user.email}</strong>
+              Enter the UIN shown on the station screen and the OTP sent to your email.
             </p>
 
-            <input
-              type="text"
-              value={otp}
-              onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
-              className="w-full px-4 py-3 border rounded-xl text-center text-2xl tracking-widest font-mono"
-              placeholder="••••••"
-              maxLength={6}
-              disabled={loading}
-            />
+            <div className="space-y-4">
+              <input
+                type="text"
+                value={uin}
+                onChange={(e) => setUin(e.target.value.replace(/\D/g, "").slice(0, 10))}
+                className="w-full px-4 py-3 border rounded-xl"
+                placeholder="UIN (e.g., 7831465308)"
+                disabled={loading}
+              />
+              <input
+                type="text"
+                value={otp}
+                onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                className="w-full px-4 py-3 border rounded-xl text-center text-2xl tracking-widest font-mono"
+                placeholder="••••••"
+                maxLength={6}
+                disabled={loading}
+              />
+            </div>
 
             <button
               onClick={handleVerify}
               disabled={!canSubmit}
-              className={`w-full mt-6 py-3 rounded-xl font-bold flex items-center justify-center ${
+              className={`w-full mt-6 py-3 rounded-xl font-bold ${
                 canSubmit 
                   ? "bg-blue-600 text-white hover:bg-blue-700" 
                   : "bg-gray-300 text-gray-500 cursor-not-allowed"
@@ -137,39 +132,25 @@ export default function BorrowPage() {
               {loading ? "Verifying..." : "Verify & Borrow"}
             </button>
 
-            <p className="text-xs text-gray-500 mt-3 text-center">
-              Didn't receive OTP?{" "}
-              <button 
-                onClick={async () => {
-                  try {
-                    await fetch("http://54.255.202.140:8000/api/auth/generate-otp", {
-                      method: "POST",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({ uin: user.uin, channel: "email" })
-                    });
-                    alert("OTP resent!");
-                  } catch {
-                    alert("Failed to resend OTP");
-                  }
-                }}
-                className="text-blue-600 hover:underline"
-              >
-                Resend
-              </button>
-            </p>
+            <button
+              onClick={handleReset}
+              className="w-full mt-3 text-gray-600 py-2 text-sm hover:text-gray-800"
+            >
+              Start Over
+            </button>
           </div>
         )}
 
         {step === "success" && (
           <div className="bg-white p-6 rounded-2xl shadow-lg text-center">
             <CheckCircle className="w-12 h-12 text-green-600 mx-auto mb-3" />
-            <h2 className="text-xl font-bold mb-2">Ready to Borrow!</h2>
+            <h2 className="text-xl font-bold mb-2">Verified!</h2>
             <p className="text-gray-600 mb-4">
               Select a bike at the station to unlock.
             </p>
             
             <Link 
-              href={`/borrow/select-bike?station=1&uin=${user.uin}`} 
+              href={`/borrow/select-bike?uin=${uin}`}
               className="block w-full bg-green-600 text-white py-3 rounded-xl font-bold hover:bg-green-700 flex items-center justify-center gap-2"
             >
               <Bike className="w-5 h-5" />
@@ -177,14 +158,10 @@ export default function BorrowPage() {
             </Link>
             
             <button
-              onClick={() => {
-                setStep("otp");
-                setOtp("");
-                setError("");
-              }}
+              onClick={handleReset}
               className="w-full mt-3 text-gray-600 py-2 text-sm hover:text-gray-800"
             >
-              Back to OTP
+              Verify Another UIN
             </button>
           </div>
         )}

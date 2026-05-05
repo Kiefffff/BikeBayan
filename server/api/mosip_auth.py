@@ -36,9 +36,11 @@ class OTPRequest(BaseModel):
     uin: str
     channel: str = "email"
 
+#  VerifyRequest uses UIN (not email)
 class VerifyRequest(BaseModel):
-    email: str
+    uin: str
     otp: str
+    transaction_id: str
 
 @router.post("/generate-otp")
 async def generate_otp(req: OTPRequest):
@@ -53,15 +55,13 @@ async def generate_otp(req: OTPRequest):
         
         data = resp.json()
         
-        # FOR DEBUGGING TO CHECK Log FULL response
+        # 🔍 DEBUG: Log MOSIP response
         logger.info("=" * 50)
         logger.info("MOSIP FULL RESPONSE:")
         logger.info(f"Raw data: {data}")
-        logger.info(f"Keys in response: {data.keys()}")
         if "response" in data:
-            logger.info(f"Response keys: {data['response'].keys()}")
-            logger.info(f"Email field: {data['response'].get('email')}")
-            logger.info(f"Phone field: {data['response'].get('phone')}")
+            logger.info(f"Email: {data['response'].get('email')}")
+            logger.info(f"Phone: {data['response'].get('phone')}")
         logger.info("=" * 50)
         
         otp_transactions[req.uin] = data["transactionID"]
@@ -74,16 +74,15 @@ async def generate_otp(req: OTPRequest):
 @router.post("/verify-otp")
 async def verify_otp(req: VerifyRequest):
     try:
-        user_lookup = supabase.table("user").select("uin").eq("email", req.email).execute()
-        if not user_lookup.data:
-            raise HTTPException(status_code=404, detail="User not found")
+        # Use UIN directly (no email lookup)
+        uin = req.uin
         
-        uin = str(user_lookup.data[0]['uin'])
+        # Get stored transaction_id
         transaction_id = otp_transactions.get(uin)
-        
         if not transaction_id:
             raise HTTPException(status_code=400, detail="No OTP generated for this user")
 
+        # MOSIP verify
         auth = get_authenticator()
         resp = auth.auth(
             individual_id=uin,
@@ -98,6 +97,19 @@ async def verify_otp(req: VerifyRequest):
         if auth_status:
             otp_transactions.pop(uin, None)
             
+            # Ensure user exists in Supabase
+            user = supabase.table("user").select("*").eq("uin", uin).execute()
+            if not user.data:
+                supabase.table("user").insert({
+                    "uin": int(uin),
+                    "status": "Cleared"
+                }).execute()
+                logger.info(f"Created user record for UIN={uin}")
+            
+            logger.info(f"OTP verified for UIN={uin}")
+        else:
+            logger.warning(f"OTP failed for UIN={uin}")
+
         return {"success": auth_status}
     except HTTPException:
         raise
