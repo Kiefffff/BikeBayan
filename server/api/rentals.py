@@ -120,8 +120,9 @@ async def return_bike(req: ReturnRequest):
     except Exception as e:
         logger.error(f"Return failed: {e}")
         raise HTTPException(status_code=500, detail="Server error during return process")
+
 # 5. ISHAN GET /api/users/{uin}/status
-@router.get("/users/{uin}/status")
+@router.post("/users/{uin}/status")
 async def get_user_status(uin: int):
     try:
         response = supabase.table("user").select("*").eq("uin", uin).execute()
