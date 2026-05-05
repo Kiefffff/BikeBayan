@@ -7,7 +7,7 @@ from mosip_auth_sdk import MOSIPAuthenticator
 from dynaconf import Dynaconf
 from supabase import create_client, Client
 from dotenv import load_dotenv
-router = APIRouter(prefix="/verify", tags=["default"])
+router = APIRouter(prefix="", tags=["default"])
 
 load_dotenv()
 supabase: Client = create_client(
@@ -95,12 +95,7 @@ async def verify_scan(req: VerifyRequest):
             }).eq("uin", uin).execute()
             logging.info(f"Updated user for UIN={uin} with email={extracted_email}")
 
-        return {
-            "result": "Truth",
-            "status": "verified",
-            "uin": uin,
-            "message": "Identity verified and data extracted."
-        }
+        return("Success")
 
     except HTTPException:
         raise
