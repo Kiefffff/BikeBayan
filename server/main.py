@@ -8,7 +8,6 @@ from server.api import users
 from server.api import mosip_auth
 from server.api import verify
 from server.api import bikes
-from server.api import auth  
 from server.api import rentals
 app = FastAPI(title="BikeBayan")
 
