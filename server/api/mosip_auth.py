@@ -73,9 +73,10 @@ async def verify_otp(req: VerifyRequest):
     try:
         email = req.email
 
-        uin = supabase.table("user").select("uin").eq("email", req.email).execute()
+        user = supabase.table("user").select("uin").eq("email", req.email).execute()
         if not user.data:
-            raise HTTPException(status_code=404, detail="User not found")   
+            raise HTTPException(status_code=404, detail="User not found")
+        uin = str(user.data[0]['uin'])
         
         transaction_id = otp_transactions.get(uin)
         if not transaction_id:
