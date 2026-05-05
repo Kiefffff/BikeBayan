@@ -14,7 +14,11 @@ supabase: Client = create_client(
 )
 
 router = APIRouter(prefix="/auth", tags=["authentication"])
+
+# Dictionary to hold the transaction IDs
 otp_transactions: dict[str, str] = {}
+# Dictionary to hold the success status for the ESP to check
+esp_auth_status: dict[str, bool] = {}
 
 logging.basicConfig(
     level=logging.INFO,
@@ -34,7 +38,6 @@ def get_authenticator():
 
 class OTPRequest(BaseModel):
     uin: str
-    channel: str = "email"
 
 class VerifyRequest(BaseModel):
     uin: str
@@ -47,16 +50,19 @@ async def generate_otp(req: OTPRequest):
         resp = auth.genotp(
             individual_id=req.uin,
             individual_id_type="UIN",
-            email=(req.channel == "email"),
-            phone=(req.channel == "sms")
+            email=True,
+            phone=False,
         )
         
         data = resp.json()
         
-        # Store transaction ID for verification
+        # Store transaction ID
         otp_transactions[req.uin] = data["transactionID"]
-        logger.info(f"OTP generated for UIN={req.uin}")
         
+        # Set the ESP status to False (Pending)
+        esp_auth_status[req.uin] = False
+        
+        logger.info(f"OTP generated for UIN={req.uin}")
         return {"success": True, "transaction_id": data["transactionID"]}
     except Exception as e:
         logger.error(f"OTP generation failed: {e}")
@@ -67,12 +73,10 @@ async def verify_otp(req: VerifyRequest):
     try:
         uin = req.uin
         
-        # Get stored transaction_id
         transaction_id = otp_transactions.get(uin)
         if not transaction_id:
             raise HTTPException(status_code=400, detail="No OTP generated for this user")
 
-        # MOSIP verify
         auth = get_authenticator()
         resp = auth.auth(
             individual_id=uin,
@@ -85,7 +89,11 @@ async def verify_otp(req: VerifyRequest):
         auth_status = data.get("response", {}).get("authStatus", False)
 
         if auth_status:
+            # Clean up the transaction
             otp_transactions.pop(uin, None)
+            
+            # MARK AS TRUE FOR THE ESP TO SEE
+            esp_auth_status[uin] = True
             
             # Ensure user exists in Supabase
             user = supabase.table("user").select("*").eq("uin", uin).execute()
@@ -106,3 +114,21 @@ async def verify_otp(req: VerifyRequest):
     except Exception as e:
         logger.error(f"Verification failed: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/check-status/{uin}")
+async def check_auth_status(uin: str):
+    """
+    ESP calls this endpoint repeatedly to check if the frontend successfully verified the OTP.
+    """
+    # Check if the uin exists in our status tracker
+    if uin not in esp_auth_status:
+        return {"no active session"}
+        
+    is_verified = esp_auth_status[uin]
+    
+    if is_verified:
+        # Once the ESP knows it's successful, we clear it from memory so it doesn't stay unlocked forever
+        esp_auth_status.pop(uin, None)
+        return {"success"}
+    else:
+        return {"pending"}
