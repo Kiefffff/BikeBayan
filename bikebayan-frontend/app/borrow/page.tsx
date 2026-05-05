@@ -1,29 +1,19 @@
-// app/borrow/page.tsx
 "use client";
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { verifyOTP } from "@/lib/api";
-import { Lock, CheckCircle, AlertCircle, Bike } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
+import { Shield, MapPin, Clock, Bike } from "lucide-react";
 
-export default function BorrowPage() {
-  const router = useRouter();
-  const [step, setStep] = useState<"verify" | "success">("verify");
-  const [uin, setUin] = useState("");
-  const [otp, setOtp] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+export default function Home() {
+  const [hasSession, setHasSession] = useState(false);
 
-  // Check for existing session on load
   useEffect(() => {
     const stored = localStorage.getItem("user");
     if (stored) {
       try {
         const user = JSON.parse(stored);
         if (user.uin) {
-          // Session valid - auto-skip to success
-          setStep("success");
-          setUin(user.uin);
+          setHasSession(true);
         }
       } catch {
         localStorage.removeItem("user");
@@ -31,141 +21,94 @@ export default function BorrowPage() {
     }
   }, []);
 
-  const handleVerify = async () => {
-    const cleanUin = uin.replace(/\D/g, "");
-    const cleanOtp = otp.replace(/\D/g, "");
-    
-    if (cleanUin.length !== 10 || cleanOtp.length !== 6) {
-      setError("Enter valid 10-digit UIN and 6-digit OTP");
-      return;
-    }
-
-    setLoading(true);
-    setError("");
-
-    try {
-      // Verify using UIN + OTP (MOSIP flow)
-      await verifyOTP(cleanUin, cleanOtp, "");
-      
-      // Store session in localStorage
-      localStorage.setItem("user", JSON.stringify({ 
-        uin: cleanUin,
-        verified_at: new Date().toISOString()
-      }));
-      
-      setStep("success");
-    } catch (err: any) {
-      setError(err.message || "Verification failed. Please try again.");
-      setOtp("");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleReset = () => {
-    setStep("verify");
-    setUin("");
-    setOtp("");
-    setError("");
-  };
-
-  const isUinValid = uin.replace(/\D/g, "").length === 10;
-  const isOtpValid = otp.replace(/\D/g, "").length === 6;
-  const canSubmit = isUinValid && isOtpValid && !loading;
-
   return (
-    <div className="min-h-screen bg-gray-50 p-4 flex items-center justify-center">
-      <div className="max-w-md w-full">
-        <Link href="/" className="inline-flex items-center text-gray-600 mb-6">
-          ← Back to Home
-        </Link>
-
-        <h1 className="text-3xl font-bold text-center mb-2">🚲 Borrow a Bike</h1>
-        <p className="text-gray-600 text-center mb-8">Enter your UIN and OTP</p>
-
-        {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-6">
-            <AlertCircle className="w-5 h-5 inline mr-2" />
-            {error}
-          </div>
-        )}
-
-        {step === "verify" && (
-          <div className="bg-white p-6 rounded-2xl shadow-lg">
-            <h2 className="text-xl font-bold mb-4 flex items-center">
-              <Lock className="w-5 h-5 mr-2 text-blue-600" />
-              Verify Identity
-            </h2>
-            <p className="text-gray-600 text-sm mb-4">
-              Enter the UIN shown on the station screen and the OTP sent to your email.
-            </p>
-
-            <div className="space-y-4">
-              <input
-                type="text"
-                value={uin}
-                onChange={(e) => setUin(e.target.value.replace(/\D/g, "").slice(0, 10))}
-                className="w-full px-4 py-3 border rounded-xl"
-                placeholder="UIN (e.g., 7831465308)"
-                disabled={loading}
-              />
-              <input
-                type="text"
-                value={otp}
-                onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                className="w-full px-4 py-3 border rounded-xl text-center text-2xl tracking-widest font-mono"
-                placeholder="••••••"
-                maxLength={6}
-                disabled={loading}
-              />
-            </div>
-
-            <button
-              onClick={handleVerify}
-              disabled={!canSubmit}
-              className={`w-full mt-6 py-3 rounded-xl font-bold ${
-                canSubmit 
-                  ? "bg-blue-600 text-white hover:bg-blue-700" 
-                  : "bg-gray-300 text-gray-500 cursor-not-allowed"
-              }`}
-            >
-              {loading ? "Verifying..." : "Verify & Borrow"}
-            </button>
-
-            <button
-              onClick={handleReset}
-              className="w-full mt-3 text-gray-600 py-2 text-sm hover:text-gray-800"
-            >
-              Start Over
-            </button>
-          </div>
-        )}
-
-        {step === "success" && (
-          <div className="bg-white p-6 rounded-2xl shadow-lg text-center">
-            <CheckCircle className="w-12 h-12 text-green-600 mx-auto mb-3" />
-            <h2 className="text-xl font-bold mb-2">Verified!</h2>
-            <p className="text-gray-600 mb-4">
-              Select a bike at the station to unlock.
-            </p>
-            
+    <div className="min-h-screen bg-white">
+      {/* Navbar */}
+      <nav className="border-b bg-white/80 backdrop-blur-sm sticky top-0 z-50">
+        <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-2">
+            <Image src="/bikebayan-logo.svg" alt="BikeBayan" width={120} height={36} />
+          </Link>
+          <div className="flex items-center gap-6">
+            {hasSession ? (
+              <Link 
+                href="/borrow" 
+                className="text-blue-600 hover:text-blue-700 font-medium"
+              >
+                Borrow Bike
+              </Link>
+            ) : null}
             <Link 
-              href={`/borrow/select-bike?uin=${uin}`}
-              className="block w-full bg-green-600 text-white py-3 rounded-xl font-bold hover:bg-green-700 flex items-center justify-center gap-2"
+              href="/admin" 
+              className="text-gray-600 hover:text-blue-600 font-medium text-sm"
             >
-              <Bike className="w-5 h-5" />
-              Select a Bike
+              Admin
             </Link>
-            
-            <button
-              onClick={handleReset}
-              className="w-full mt-3 text-gray-600 py-2 text-sm hover:text-gray-800"
-            >
-              Verify Another UIN
-            </button>
           </div>
-        )}
-      </div>
+        </div>
+      </nav>
+
+      {/* Hero Section */}
+      <section className="py-20 px-4 text-center bg-gradient-to-b from-blue-50 to-white">
+        <div className="max-w-3xl mx-auto">
+          <Image src="/bikebayan-logo.svg" alt="BikeBayan" width={400} height={120} className="mx-auto mb-6" priority />
+          <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+            Mahal ang Gas. Pero mas mahal kita.
+          </h1>
+          <p className="text-lg text-gray-600 mb-10">
+            National ID-verified bike sharing for Metro Manila. Secure, accessible, and accountable.
+          </p>
+          
+          <div className="flex flex-col sm:flex-row justify-center gap-4">
+            <Link 
+              href="/borrow"
+              className="group relative bg-blue-600 text-white px-10 py-4 rounded-2xl font-bold text-lg hover:bg-blue-700 transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 flex items-center justify-center gap-3"
+            >
+              <Bike className="w-6 h-6 group-hover:animate-bounce" /> 
+              {hasSession ? "Continue Borrowing" : "Borrow a Bike"}
+            </Link>
+          </div>
+          
+          <p className="text-sm text-gray-500 mt-6">
+            Scan your National ID at any station • Enter UIN + OTP to unlock
+          </p>
+        </div>
+      </section>
+
+      {/* Features Section */}
+      <section className="py-16 px-4 bg-gray-50">
+        <div className="max-w-6xl mx-auto">
+          <h2 className="text-3xl font-bold text-center mb-12">Why BikeBayan?</h2>
+          <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+            <div className="bg-white p-6 rounded-2xl shadow-sm border hover:shadow-md transition flex flex-col items-center text-center">
+              <div className="w-16 h-16 bg-blue-100 rounded-xl flex items-center justify-center mb-4">
+                <Shield className="w-8 h-8 text-blue-600" />
+              </div>
+              <h3 className="text-xl font-bold mb-3">National ID Verified</h3>
+              <p className="text-gray-600 text-sm">Every rental is tied to your PhilSys ID. No anonymous borrowing.</p>
+            </div>
+            <div className="bg-white p-6 rounded-2xl shadow-sm border hover:shadow-md transition flex flex-col items-center text-center">
+              <div className="w-16 h-16 bg-green-100 rounded-xl flex items-center justify-center mb-4">
+                <MapPin className="w-8 h-8 text-green-600" />
+              </div>
+              <h3 className="text-xl font-bold mb-3">Multi-Station Network</h3>
+              <p className="text-gray-600 text-sm">Borrow at Station A, return at Station B. Real-time sync.</p>
+            </div>
+            <div className="bg-white p-6 rounded-2xl shadow-sm border hover:shadow-md transition flex flex-col items-center text-center">
+              <div className="w-16 h-16 bg-yellow-100 rounded-xl flex items-center justify-center mb-4">
+                <Clock className="w-8 h-8 text-yellow-600" />
+              </div>
+              <h3 className="text-xl font-bold mb-3">Secure & Accountable</h3>
+              <p className="text-gray-600 text-sm">Smart locks, RFID validation, and automated deadline enforcement.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="py-8 px-4 border-t text-center text-gray-500 text-sm bg-white">
+        <p>© 2026 BikeBayan • Team 13 | CS145 Project | University of the Philippines</p>
+      </footer>
     </div>
   );
 }

@@ -36,11 +36,9 @@ class OTPRequest(BaseModel):
     uin: str
     channel: str = "email"
 
-#  VerifyRequest uses UIN (not email)
 class VerifyRequest(BaseModel):
     uin: str
     otp: str
-    transaction_id: str
 
 @router.post("/generate-otp")
 async def generate_otp(req: OTPRequest):
@@ -55,17 +53,10 @@ async def generate_otp(req: OTPRequest):
         
         data = resp.json()
         
-        # 🔍 DEBUG: Log MOSIP response
-        logger.info("=" * 50)
-        logger.info("MOSIP FULL RESPONSE:")
-        logger.info(f"Raw data: {data}")
-        if "response" in data:
-            logger.info(f"Email: {data['response'].get('email')}")
-            logger.info(f"Phone: {data['response'].get('phone')}")
-        logger.info("=" * 50)
-        
+        # Store transaction ID for verification
         otp_transactions[req.uin] = data["transactionID"]
         logger.info(f"OTP generated for UIN={req.uin}")
+        
         return {"success": True, "transaction_id": data["transactionID"]}
     except Exception as e:
         logger.error(f"OTP generation failed: {e}")
@@ -74,7 +65,6 @@ async def generate_otp(req: OTPRequest):
 @router.post("/verify-otp")
 async def verify_otp(req: VerifyRequest):
     try:
-        # Use UIN directly (no email lookup)
         uin = req.uin
         
         # Get stored transaction_id
