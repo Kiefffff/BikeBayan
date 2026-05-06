@@ -49,6 +49,7 @@ async def verify_scan(req: VerifyRequest):
             individual_id_type="UIN",
             demographic_data=demographics_data,
             consent=True,
+            timeout=30,
         )
 
         kyc_response_body = response.json()
