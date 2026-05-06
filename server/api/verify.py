@@ -8,6 +8,7 @@ from mosip_auth_sdk import MOSIPAuthenticator
 from dynaconf import Dynaconf
 from supabase import create_client, Client
 from dotenv import load_dotenv
+from fastapi.responses import PlainTextResponse
 router = APIRouter(prefix="", tags=["default"])
 
 load_dotenv()
@@ -32,11 +33,17 @@ async def verify_scan(req: VerifyRequest):
     Flow: ESP extracts UIN → MOSIP verify → Decrypt KYC → Create/update user record → Return success
     """
     try:
-        return await asyncio.wait_for(process_verification(req), timeout=120)
+        return await asyncio.wait_for(
+            asyncio.to_thread(process_verification, req), 
+            timeout=120
+        )
     except asyncio.TimeoutError:
-        raise HTTPException(status_code=504, detail="Verification timeout")
+        logging.error("MOSIP API or Database took too long to respond.")
+        return PlainTextResponse("-1")
+    except HTTPException:
+        return PlainTextResponse("-1")
 
-async def process_verification(req: VerifyRequest):
+def process_verification(req: VerifyRequest):
     try:
         uin = req.uin
         dob = req.dob
