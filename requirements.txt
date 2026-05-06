@@ -31,6 +31,7 @@ mmh3>=5.2.1
 mosip-auth-sdk @ git+https://github.com/mosip/ida-auth-sdk.git@f322c59868123c2ef9410b5a3fecfd5dcdfd56af
 numpy>=2.2.6
 opencv-python>=4.12.0.88
+passlib>=1.7.4
 pycparser>=2.23
 pydantic>=2.12.5
 pydantic_core>=2.41.5

@@ -20,3 +20,4 @@ venv.bak/
 
 # Certificates
 config.toml
+*.pem

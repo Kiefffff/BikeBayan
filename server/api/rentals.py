@@ -45,7 +45,7 @@ async def get_station_bikes(station_id: int):
         response = supabase.table("slots").select("*").eq("station_id", station_id).execute()
         slots = []
         for slot in response.data:
-            if slot["occupied_bike"] is not None:
+            if slot["occupied_bike"] not in [None, 0]:
                 slots.append(slot["occupied_bike"])
 
         return {"bikes": slots}
@@ -120,8 +120,9 @@ async def return_bike(req: ReturnRequest):
     except Exception as e:
         logger.error(f"Return failed: {e}")
         raise HTTPException(status_code=500, detail="Server error during return process")
+
 # 5. ISHAN GET /api/users/{uin}/status
-@router.get("/users/{uin}/status")
+@router.post("/users/{uin}/status")
 async def get_user_status(uin: int):
     try:
         response = supabase.table("user").select("*").eq("uin", uin).execute()

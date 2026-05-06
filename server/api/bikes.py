@@ -30,13 +30,12 @@ class EspBorrowRequest(BaseModel):
 
 class EspUserBikeCheckRequest(BaseModel):
     uin: int
-    rfid: str
 
 class EspReturnedRequest(BaseModel):
     uin: int
     station_id: int | None = None
 
-
+# good
 @router.post("/station-update")
 async def station_update(req: EspStationUpdateRequest):
     try:
@@ -59,7 +58,7 @@ async def station_update(req: EspStationUpdateRequest):
         logger.error(f"Station Update failed: {e}")
         return PlainTextResponse("-1")
 
-
+# good
 @router.post("/user-status")
 async def user_status_check(req: EspUserStatusRequest):
     try:
@@ -107,19 +106,10 @@ async def set_user_borrowing(req: EspBorrowRequest):
         logger.error(f"Set Borrowing failed: {e}")
         return PlainTextResponse("-1")
 
-
+# good
 @router.post("/user-bike-check")
 async def user_bike_check(req: EspUserBikeCheckRequest):
     try:
-        bike_lookup = supabase.table("bikes").select("id").eq(
-            "rfid", req.rfid
-        ).execute()
-
-        if not bike_lookup.data:
-            return PlainTextResponse("-1")
-
-        rfid_bike_id = bike_lookup.data[0]['id']
-
         active_rental = supabase.table("rental").select("bike_id").eq(
             "user_uin", req.uin
         ).is_("end_time", None).execute()
@@ -127,12 +117,7 @@ async def user_bike_check(req: EspUserBikeCheckRequest):
         if not active_rental.data:
             return PlainTextResponse("-1")
 
-        rented_bike_id = active_rental.data[0]['bike_id']
-
-        if rfid_bike_id != rented_bike_id:
-            return PlainTextResponse("-1")
-
-        return PlainTextResponse(str(rfid_bike_id))
+        return PlainTextResponse(str(active_rental.data[0]['bike_id']))
     except Exception as e:
         logger.error(f"User Bike Check failed: {e}")
         return PlainTextResponse("-1")

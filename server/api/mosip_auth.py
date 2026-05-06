@@ -1,4 +1,5 @@
 from fastapi import APIRouter, HTTPException
+from fastapi.responses import PlainTextResponse
 from pydantic import BaseModel
 from mosip_auth_sdk import MOSIPAuthenticator
 from dynaconf import Dynaconf
@@ -14,7 +15,11 @@ supabase: Client = create_client(
 )
 
 router = APIRouter(prefix="/auth", tags=["authentication"])
+
+# Dictionary to hold the transaction IDs
 otp_transactions: dict[str, str] = {}
+# Dictionary to hold the success status for the ESP to check
+esp_auth_status: dict[str, bool] = {}
 
 logging.basicConfig(
     level=logging.INFO,
@@ -34,30 +39,37 @@ def get_authenticator():
 
 class OTPRequest(BaseModel):
     uin: str
-    channel: str = "email"
 
 class VerifyRequest(BaseModel):
-    uin: str
+    email: str
     otp: str
 
 @router.post("/generate-otp")
 async def generate_otp(req: OTPRequest):
     try:
+        # check if UIN exists
+        user = supabase.table("user").select("uin").eq("uin", req.uin).execute()
+        if not user.data:
+            raise HTTPException(status_code=400, detail="Invalid UIN")
+
         auth = get_authenticator()
         resp = auth.genotp(
             individual_id=req.uin,
             individual_id_type="UIN",
-            email=(req.channel == "email"),
-            phone=(req.channel == "sms")
+            email=True,
+            phone=False,
         )
         
         data = resp.json()
         
-        # Store transaction ID for verification
+        # Store transaction ID
         otp_transactions[req.uin] = data["transactionID"]
-        logger.info(f"OTP generated for UIN={req.uin}")
         
-        return {"success": True, "transaction_id": data["transactionID"]}
+        # Set the ESP status to False (Pending)
+        esp_auth_status[req.uin] = False
+        
+        logger.info(f"OTP generated for UIN={req.uin}")
+        return PlainTextResponse("success")
     except Exception as e:
         logger.error(f"OTP generation failed: {e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -65,14 +77,17 @@ async def generate_otp(req: OTPRequest):
 @router.post("/verify-otp")
 async def verify_otp(req: VerifyRequest):
     try:
-        uin = req.uin
+        email = req.email
+
+        user = supabase.table("user").select("uin").eq("email", req.email).execute()
+        if not user.data:
+            raise HTTPException(status_code=404, detail="User not found")
+        uin = str(user.data[0]['uin'])
         
-        # Get stored transaction_id
         transaction_id = otp_transactions.get(uin)
         if not transaction_id:
             raise HTTPException(status_code=400, detail="No OTP generated for this user")
 
-        # MOSIP verify
         auth = get_authenticator()
         resp = auth.auth(
             individual_id=uin,
@@ -85,7 +100,11 @@ async def verify_otp(req: VerifyRequest):
         auth_status = data.get("response", {}).get("authStatus", False)
 
         if auth_status:
+            # Clean up the transaction
             otp_transactions.pop(uin, None)
+            
+            # MARK AS TRUE FOR THE ESP TO SEE
+            esp_auth_status[uin] = True
             
             # Ensure user exists in Supabase
             user = supabase.table("user").select("*").eq("uin", uin).execute()
@@ -103,6 +122,31 @@ async def verify_otp(req: VerifyRequest):
         return {"success": auth_status}
     except HTTPException:
         raise
+    except Exception as e:
+        logger.error(f"Verification failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/check-status")
+async def check_auth_status(req: OTPRequest):
+    """
+    ESP calls this endpoint repeatedly to check if the frontend successfully verified the OTP.
+    """
+    try:
+        # check if UIN exists
+        user = supabase.table("user").select("uin").eq("uin", req.uin).execute()
+        if not user.data:
+            raise HTTPException(status_code=400, detail="Invalid UIN")
+
+        uin = req.uin
+        if uin not in esp_auth_status:
+            return PlainTextResponse("no active session")
+
+        is_verified = esp_auth_status[uin]
+        if is_verified:
+            esp_auth_status.pop(uin, None)
+            return PlainTextResponse("success")
+        else:
+            return PlainTextResponse("pending")
     except Exception as e:
         logger.error(f"Verification failed: {e}")
         raise HTTPException(status_code=500, detail=str(e))
