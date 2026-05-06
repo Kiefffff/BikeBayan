@@ -1,5 +1,6 @@
 import os
 import logging
+import asyncio
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from mosip_auth_sdk.models import DemographicsModel
@@ -31,6 +32,12 @@ async def verify_scan(req: VerifyRequest):
     Flow: ESP extracts UIN → MOSIP verify → Decrypt KYC → Create/update user record → Return success
     """
     try:
+        return await asyncio.wait_for(process_verification(req), timeout=120)
+    except asyncio.TimeoutError:
+        raise HTTPException(status_code=504, detail="Verification timeout")
+
+async def process_verification(req: VerifyRequest):
+    try:
         uin = req.uin
         dob = req.dob
         name = req.name
@@ -49,7 +56,6 @@ async def verify_scan(req: VerifyRequest):
             individual_id_type="UIN",
             demographic_data=demographics_data,
             consent=True,
-            timeout=30,
         )
 
         kyc_response_body = response.json()
