@@ -1,3 +1,4 @@
+# server/api/mosip_auth.py
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import PlainTextResponse
 from pydantic import BaseModel
@@ -5,6 +6,7 @@ from mosip_auth_sdk import MOSIPAuthenticator
 from dynaconf import Dynaconf
 import logging
 import os
+import asyncio  
 from supabase import create_client, Client
 from dotenv import load_dotenv
 
@@ -44,35 +46,50 @@ class VerifyRequest(BaseModel):
     email: str
     otp: str
 
+def _process_generate_otp(req: OTPRequest):
+    auth = get_authenticator()
+    resp = auth.genotp(
+        individual_id=req.uin,
+        individual_id_type="UIN",
+        email=True,
+        phone=False,
+    )
+    return resp.json()
+
+def _process_verify_otp(req: VerifyRequest, uin: str, transaction_id: str):
+    auth = get_authenticator()
+    resp = auth.auth(
+        individual_id=uin,
+        individual_id_type="UIN",
+        otp_value=req.otp,
+        txn_id=transaction_id,
+        consent=True
+    )
+    return resp.json()
+
 @router.post("/generate-otp")
 async def generate_otp(req: OTPRequest):
     try:
-        # check if UIN exists
-        user = supabase.table("user").select("uin").eq("uin", req.uin).execute()
-        if not user.data:
-            raise HTTPException(status_code=400, detail="Invalid UIN")
-
-        auth = get_authenticator()
-        resp = auth.genotp(
-            individual_id=req.uin,
-            individual_id_type="UIN",
-            email=True,
-            phone=False,
+        data = await asyncio.wait_for(
+            asyncio.to_thread(_process_generate_otp, req),
+            timeout=30.0  # 30 seconds timeout
         )
-        
-        data = resp.json()
         
         # Store transaction ID
         otp_transactions[req.uin] = data["transactionID"]
-        
-        # Set the ESP status to False (Pending)
         esp_auth_status[req.uin] = False
         
         logger.info(f"OTP generated for UIN={req.uin}")
         return PlainTextResponse("success")
+        
+    except asyncio.TimeoutError:
+        logger.error(f"OTP generation timed out for UIN={req.uin}")
+        return PlainTextResponse("-1")  # ESP-friendly error
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"OTP generation failed: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        return PlainTextResponse("-1")
 
 @router.post("/verify-otp")
 async def verify_otp(req: VerifyRequest):
@@ -88,27 +105,20 @@ async def verify_otp(req: VerifyRequest):
         if not transaction_id:
             raise HTTPException(status_code=400, detail="No OTP generated for this user")
 
-        auth = get_authenticator()
-        resp = auth.auth(
-            individual_id=uin,
-            individual_id_type="UIN",
-            otp_value=req.otp,
-            txn_id=transaction_id,
-            consent=True
+        data = await asyncio.wait_for(
+            asyncio.to_thread(_process_verify_otp, req, uin, transaction_id),
+            timeout=30.0  # 30 seconds timeout
         )
-        data = resp.json()
+        
         auth_status = data.get("response", {}).get("authStatus", False)
 
         if auth_status:
-            # Clean up the transaction
             otp_transactions.pop(uin, None)
-            
-            # MARK AS TRUE FOR THE ESP TO SEE
             esp_auth_status[uin] = True
             
             # Ensure user exists in Supabase
-            user = supabase.table("user").select("*").eq("uin", uin).execute()
-            if not user.data:
+            user_check = supabase.table("user").select("*").eq("uin", uin).execute()
+            if not user_check.data:
                 supabase.table("user").insert({
                     "uin": int(uin),
                     "status": "Cleared"
@@ -120,11 +130,15 @@ async def verify_otp(req: VerifyRequest):
             logger.warning(f"OTP failed for UIN={uin}")
 
         return {"success": auth_status}
+        
+    except asyncio.TimeoutError:
+        logger.error(f"OTP verification timed out for UIN={uin}")
+        return {"success": False, "error": "timeout"}
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"Verification failed: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        return {"success": False, "error": str(e)}
 
 @router.post("/check-status")
 async def check_auth_status(req: OTPRequest):
@@ -132,7 +146,6 @@ async def check_auth_status(req: OTPRequest):
     ESP calls this endpoint repeatedly to check if the frontend successfully verified the OTP.
     """
     try:
-        # check if UIN exists
         user = supabase.table("user").select("uin").eq("uin", req.uin).execute()
         if not user.data:
             raise HTTPException(status_code=400, detail="Invalid UIN")
@@ -148,5 +161,5 @@ async def check_auth_status(req: OTPRequest):
         else:
             return PlainTextResponse("pending")
     except Exception as e:
-        logger.error(f"Verification failed: {e}")
+        logger.error(f"Status check failed: {e}")
         raise HTTPException(status_code=500, detail=str(e))
