@@ -9,6 +9,9 @@ from server.api import mosip_auth
 from server.api import verify
 from server.api import bikes
 from server.api import rentals
+from server.api import reports
+
+
 app = FastAPI(title="BikeBayan")
 
 
@@ -23,12 +26,13 @@ app.add_middleware(
 
 # Include Routers
 app.include_router(health.router, prefix="/api")
-app.include_router(users.router, prefix="/users")
+# app.include_router(users.router, prefix="/users")
 app.include_router(mosip_auth.router, prefix="/api")
 app.include_router(verify.router, prefix="/api")
 app.include_router(bikes.router, prefix="/api")
-app.include_router(rentals.router)
+app.include_router(rentals.router, prefix="/api")
+app.include_router(reports.router, prefix="/api")
 
-@app.get("/")
-async def root():
-    return {"message": "Welcome to BikeBayan!"}
+# @app.get("/")
+# async def root():
+#     return {"message": "Welcome to BikeBayan!"}
