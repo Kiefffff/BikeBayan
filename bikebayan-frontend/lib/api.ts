@@ -25,11 +25,28 @@ export const getStations = async () => {
 };
 
 export const getStationBikes = async (stationId: number) => {
-  const res = await api.get("/api/stations/${stationId}/bikes");
+  const res = await api.get(`/api/stations/${stationId}/bikes`);
   return res.data;
 };
 
+export const getReports = async () => {
+  const res = await api.get("/api/reports");
+  return res.data;
+};
+
+export const updateReport = async (
+  reportId: number,
+  payload: { rental_id: number; email: string; body: string; resolved: boolean }
+) => {
+  const res = await api.patch(`/api/reports/${reportId}`, payload);
+  return res.data;
+};
+ 
+export const deleteReport = async (reportId: number) => {
+  await api.delete(`/api/reports/${reportId}`);
+};
+ 
 export const submitReport = async (email: string, body: string) => {
   const res = await api.post("/api/reports/submit", { email, body });
   return res.data;
-}
+};
