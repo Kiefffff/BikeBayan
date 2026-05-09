@@ -62,7 +62,7 @@ async def submit_report(req: SubmitReport):
             supabase.table("user")
             .select("uin")
             .eq("email", req.email)
-            .limit(1)
+            .maybe_single()
             .execute()
         )
         if not user.data:
@@ -78,7 +78,7 @@ async def submit_report(req: SubmitReport):
             .limit(1)
             .execute()
         )
-        if not rental.data:
+        if not rental.data or len(rental.data) == 0:
             raise HTTPException(status_code=404, detail="No rentals found for this user")
         rental_id = rental.data[0]["id"]
 
@@ -90,7 +90,7 @@ async def submit_report(req: SubmitReport):
             .limit(1)
             .execute()
         )
-        if existing.data:
+        if existing.data and len(existing.data) > 0:
             raise HTTPException(
                 status_code=409,
                 detail=f"A report already exists for rental {rental_id}"
@@ -106,6 +106,8 @@ async def submit_report(req: SubmitReport):
             })
             .execute()
         )
+        if not response.data or len(response.data) == 0:
+            raise HTTPException(status_code=500, detail="Insert returned no data")
         return {"report": response.data[0]}
     except HTTPException:
         raise
