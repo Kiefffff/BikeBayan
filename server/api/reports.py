@@ -62,7 +62,7 @@ async def submit_report(req: SubmitReport):
             supabase.table("user")
             .select("uin")
             .eq("email", req.email)
-            .single()
+            .limit(1)
             .execute()
         )
         if not user.data:
