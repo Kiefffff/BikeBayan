@@ -13,7 +13,7 @@ supabase: Client = create_client(
 )
 
 logger = logging.getLogger(__name__)
-router = APIRouter(prefix="/api", tags=["rentals"])
+router = APIRouter(tags=["rentals"])
 
 
 class BorrowRequest(BaseModel):

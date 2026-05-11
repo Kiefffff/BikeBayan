@@ -3,18 +3,17 @@
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Shield, MapPin, Clock, Bike } from "lucide-react";
+import { Shield, MapPin, Clock, Bike, Flag } from "lucide-react";
 
 export default function Home() {
   const [hasSession, setHasSession] = useState(false);
 
   useEffect(() => {
-    // Check if user has active session from email+OTP verification
     const stored = localStorage.getItem("user");
     if (stored) {
       try {
         const user = JSON.parse(stored);
-        if (user.email && user.verified_at) {
+        if (user.email && user.verified_at && user.email !== "admin@bikebayan.ph") {
           setHasSession(true);
         }
       } catch {
@@ -32,10 +31,16 @@ export default function Home() {
             <Image src="/bikebayan-logo.svg" alt="BikeBayan" width={120} height={36} />
           </Link>
           <div className="flex items-center gap-6">
-            {/* ✅ FIXED: Link to admin login, not dashboard directly */}
-            <Link 
-              href="/admin/login" 
-              className="text-gray-600 hover:text-purple-600 font-medium text-sm flex items-center gap-1"
+            <Link
+              href="/report"
+              className="text-gray-600 hover:text-red-600 font-medium text-sm flex items-center gap-1 transition-colors"
+            >
+              <Flag className="w-4 h-4" />
+              Report Issue
+            </Link>
+            <Link
+              href="/admin/login"
+              className="text-gray-600 hover:text-purple-600 font-medium text-sm flex items-center gap-1 transition-colors"
             >
               <Shield className="w-4 h-4" />
               Admin
@@ -54,17 +59,24 @@ export default function Home() {
           <p className="text-lg text-gray-600 mb-10">
             National ID-verified bike sharing for Metro Manila. Secure, accessible, and accountable.
           </p>
-          
+
           <div className="flex flex-col sm:flex-row justify-center gap-4">
-            <Link 
+            <Link
               href="/borrow"
               className="group relative bg-blue-600 text-white px-10 py-4 rounded-2xl font-bold text-lg hover:bg-blue-700 transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 flex items-center justify-center gap-3"
             >
-              <Bike className="w-6 h-6 group-hover:animate-bounce" /> 
+              <Bike className="w-6 h-6 group-hover:animate-bounce" />
               {hasSession ? "Continue Borrowing" : "Borrow a Bike"}
             </Link>
+            <Link
+              href="/report"
+              className="group border-2 border-red-200 text-red-600 px-10 py-4 rounded-2xl font-bold text-lg hover:bg-red-50 hover:border-red-300 transition-all flex items-center justify-center gap-3"
+            >
+              <Flag className="w-6 h-6" />
+              Report an Issue
+            </Link>
           </div>
-          
+
           <p className="text-sm text-gray-500 mt-6">
             Scan National ID at station • Enter email + OTP to unlock
           </p>
