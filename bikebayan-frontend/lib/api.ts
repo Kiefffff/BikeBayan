@@ -1,7 +1,7 @@
 // lib/api.ts
 import axios from 'axios';
 
-const API_BASE = "http://54.255.202.140:8000";
+const API_BASE = "http://127.0.0.1:8000/";
 
 export const api = axios.create({
   baseURL: API_BASE,
@@ -49,4 +49,9 @@ export const deleteReport = async (reportId: number) => {
 export const submitReport = async (email: string, body: string) => {
   const res = await api.post("/api/reports/submit", { email, body });
   return res.data;
+};
+
+export const getActiveRentals = async () => {
+  const res = await api.get("/api/rentals/active");
+  return res.data; // { active_rentals: [...] }
 };

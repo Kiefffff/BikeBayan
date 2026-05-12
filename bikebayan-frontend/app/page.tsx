@@ -4,11 +4,15 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Shield, MapPin, Clock, Bike, Flag } from "lucide-react";
+import { getStations } from "@/lib/api"; // <-- Make sure to import this!
 
 export default function Home() {
   const [hasSession, setHasSession] = useState(false);
+  const [stations, setStations] = useState<any[]>([]);
+  const [loadingStations, setLoadingStations] = useState(true);
 
   useEffect(() => {
+    // 1. Check for active user session
     const stored = localStorage.getItem("user");
     if (stored) {
       try {
@@ -20,6 +24,20 @@ export default function Home() {
         localStorage.removeItem("user");
       }
     }
+
+    // 2. Fetch live station data
+    const fetchLiveStations = async () => {
+      try {
+        const data = await getStations();
+        setStations(data.stations || []);
+      } catch (err) {
+        console.error("Failed to load stations:", err);
+      } finally {
+        setLoadingStations(false);
+      }
+    };
+
+    fetchLiveStations();
   }, []);
 
   return (
@@ -80,6 +98,48 @@ export default function Home() {
           <p className="text-sm text-gray-500 mt-6">
             Scan National ID at station • Enter email + OTP to unlock
           </p>
+        </div>
+      </section>
+
+      {/* NEW: Live Station Status Section */}
+      <section className="py-12 px-4 bg-white border-t border-b">
+        <div className="max-w-4xl mx-auto">
+          <h2 className="text-2xl font-bold text-center mb-8 flex items-center justify-center gap-2 text-gray-900">
+            <MapPin className="w-6 h-6 text-blue-600" />
+            Live Station Availability
+          </h2>
+          
+          {loadingStations ? (
+            <div className="flex justify-center items-center py-8">
+              <span className="animate-pulse text-gray-500 font-medium">Checking live stations...</span>
+            </div>
+          ) : stations.length === 0 ? (
+            <p className="text-center text-gray-500">No stations are currently online.</p>
+          ) : (
+            <div className="grid sm:grid-cols-2 gap-4">
+              {stations.map(station => {
+                const isAvailable = (station.available_slots || 0) > 0;
+                return (
+                  <div key={station.id} className="p-5 rounded-2xl border bg-gray-50 flex justify-between items-center hover:shadow-md transition border-gray-200">
+                    <div>
+                      <h3 className="font-bold text-gray-900 text-lg">{station.name}</h3>
+                      <p className="text-sm text-gray-500 mt-0.5">Capacity: {station.total_capacity || 0} docks</p>
+                    </div>
+                    <div className="text-right">
+                      <span className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-bold ${
+                        isAvailable 
+                          ? "bg-green-100 text-green-700 ring-1 ring-green-500/20" 
+                          : "bg-red-100 text-red-700 ring-1 ring-red-500/20"
+                      }`}>
+                        <Bike className="w-4 h-4" />
+                        {station.available_slots || 0} Left
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       </section>
 

@@ -2,11 +2,11 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { getStations, getReports, updateReport, deleteReport } from "@/lib/api";
+import { getStations, getReports, updateReport, deleteReport, getActiveRentals } from "@/lib/api";
 import {
   Bike, AlertTriangle, Users, MapPin, RefreshCw, LogOut,
   Flag, CheckCircle, Clock, ChevronDown, ChevronUp,
-  Pencil, Trash2, X, Save,
+  Pencil, Trash2, X, Save, Activity
 } from "lucide-react";
 import Link from "next/link";
 
@@ -31,8 +31,12 @@ export default function AdminDashboard() {
   const [user, setUser] = useState<any>(null);
   const [stations, setStations] = useState<any[]>([]);
   const [reports, setReports] = useState<Report[]>([]);
+  const [activeRentals, setActiveRentals] = useState<any[]>([]);
+  
   const [loadingStations, setLoadingStations] = useState(true);
   const [loadingReports, setLoadingReports] = useState(true);
+  const [loadingActiveRentals, setLoadingActiveRentals] = useState(true);
+  
   const [expandedReport, setExpandedReport] = useState<number | null>(null);
   const [editingReport, setEditingReport] = useState<number | null>(null);
   const [editState, setEditState] = useState<EditState>({ body: "", resolved: false });
@@ -47,17 +51,17 @@ export default function AdminDashboard() {
       const userData = JSON.parse(storedUser);
       if (userData.email !== ADMIN_EMAIL) { router.push("/"); return; }
       setUser(userData);
-      fetchStations();
-      fetchReports();
+      fetchAllData();
     } catch {
       localStorage.removeItem("user");
       router.push("/admin/login");
     }
   }, [router]);
 
-  const handleLogout = () => {
-    localStorage.removeItem("user");
-    router.push("/admin/login");
+  const fetchAllData = () => {
+    fetchStations();
+    fetchReports();
+    fetchActiveRentals();
   };
 
   const fetchStations = async () => {
@@ -84,9 +88,21 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleRefresh = () => {
-    fetchStations();
-    fetchReports();
+  const fetchActiveRentals = async () => {
+    setLoadingActiveRentals(true);
+    try {
+      const data = await getActiveRentals();
+      setActiveRentals(data.active_rentals || []);
+    } catch (err) {
+      console.error("Failed to fetch active rentals:", err);
+    } finally {
+      setLoadingActiveRentals(false);
+    }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("user");
+    router.push("/admin/login");
   };
 
   const startEdit = (report: Report) => {
@@ -157,10 +173,10 @@ export default function AdminDashboard() {
           </div>
           <div className="flex items-center gap-4">
             <button
-              onClick={handleRefresh}
+              onClick={fetchAllData}
               className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700"
             >
-              <RefreshCw className={`w-4 h-4 ${(loadingStations || loadingReports) ? "animate-spin" : ""}`} />
+              <RefreshCw className={`w-4 h-4 ${(loadingStations || loadingReports || loadingActiveRentals) ? "animate-spin" : ""}`} />
               Refresh
             </button>
             <button
@@ -188,8 +204,17 @@ export default function AdminDashboard() {
             <div className="flex items-center gap-3">
               <Bike className="w-6 h-6 text-blue-600" />
               <div>
-                <p className="text-2xl font-bold">{stations.reduce((acc, s) => acc + (s.total_capacity || 0), 0)}</p>
-                <p className="text-xs text-gray-500">Total Bikes</p>
+                <p className="text-2xl font-bold">{stations.reduce((acc, s) => acc + (s.available_slots || 0), 0)}</p>
+                <p className="text-xs text-gray-500">Docked Bikes</p>
+              </div>
+            </div>
+          </div>
+          <div className="bg-white p-4 rounded-xl shadow-sm border">
+            <div className="flex items-center gap-3">
+              <Activity className="w-6 h-6 text-purple-600" />
+              <div>
+                <p className="text-2xl font-bold">{activeRentals.length}</p>
+                <p className="text-xs text-gray-500">In Use</p>
               </div>
             </div>
           </div>
@@ -204,15 +229,6 @@ export default function AdminDashboard() {
           </div>
           <div className="bg-white p-4 rounded-xl shadow-sm border">
             <div className="flex items-center gap-3">
-              <Users className="w-6 h-6 text-yellow-600" />
-              <div>
-                <p className="text-2xl font-bold">0</p>
-                <p className="text-xs text-gray-500">Flagged Users</p>
-              </div>
-            </div>
-          </div>
-          <div className="bg-white p-4 rounded-xl shadow-sm border">
-            <div className="flex items-center gap-3">
               <AlertTriangle className="w-6 h-6 text-red-600" />
               <div>
                 <p className="text-2xl font-bold">{loadingReports ? "—" : pendingCount}</p>
@@ -222,7 +238,7 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        {/* Station Status */}
+        {/* 1. Station Status & Docked Bikes */}
         <div className="bg-white rounded-2xl shadow-sm border mb-8">
           <div className="p-6 border-b">
             <h2 className="text-lg font-bold flex items-center gap-2">
@@ -236,20 +252,36 @@ export default function AdminDashboard() {
             ) : stations.length === 0 ? (
               <p className="text-gray-500">No stations found.</p>
             ) : (
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid md:grid-cols-2 gap-4">
                 {stations.map(station => (
-                  <div key={station.id} className="p-4 rounded-xl border">
+                  <div key={station.id} className="p-5 rounded-xl border bg-gray-50/50">
                     <div className="flex justify-between items-start mb-2">
-                      <h3 className="font-bold">{station.name}</h3>
-                      <span className={`text-xs px-2 py-1 rounded-full ${
+                      <h3 className="font-bold text-gray-900">{station.name}</h3>
+                      <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${
                         (station.available_slots || 0) > 0
                           ? "bg-green-100 text-green-700"
                           : "bg-red-100 text-red-700"
                       }`}>
-                        {station.available_slots || 0} available
+                        {station.available_slots || 0} / {station.total_capacity || 0} slots full
                       </span>
                     </div>
-                    <p className="text-sm text-gray-600">Capacity: {station.total_capacity}</p>
+
+                    {/* NEW: Display specific docked bikes */}
+                    <div className="mt-4 pt-4 border-t">
+                      <p className="text-xs text-gray-500 mb-2 font-medium uppercase tracking-wider">Currently Docked Bikes:</p>
+                      <div className="flex flex-wrap gap-2">
+                        {station.docked_bikes && station.docked_bikes.length > 0 ? (
+                          station.docked_bikes.map((bikeId: number) => (
+                            <span key={bikeId} className="px-2 py-1 bg-white shadow-sm text-gray-700 text-xs rounded-md border flex items-center gap-1.5">
+                              <Bike className="w-3 h-3 text-blue-500"/>
+                              Bike #{bikeId}
+                            </span>
+                          ))
+                        ) : (
+                          <span className="text-xs text-gray-400 italic">Station is currently empty.</span>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -257,7 +289,54 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        {/* Reports */}
+        {/* 2. NEW: Bikes Currently In Use */}
+        <div className="bg-white rounded-2xl shadow-sm border mb-8">
+          <div className="p-6 border-b">
+            <h2 className="text-lg font-bold flex items-center gap-2">
+              <Activity className="w-5 h-5 text-purple-600" />
+              Bikes Currently In Use
+            </h2>
+          </div>
+          <div className="p-6">
+            {loadingActiveRentals ? (
+              <p className="text-gray-500">Loading active rentals...</p>
+            ) : activeRentals.length === 0 ? (
+              <div className="text-center py-6">
+                <Bike className="w-12 h-12 text-gray-300 mx-auto mb-2" />
+                <p className="text-gray-500 font-medium">No bikes are currently being ridden.</p>
+              </div>
+            ) : (
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {activeRentals.map(rental => (
+                  <div key={rental.id} className="p-4 rounded-xl border border-purple-100 bg-purple-50/50">
+                    <div className="flex justify-between items-start mb-3">
+                      <h3 className="font-bold text-purple-900 flex items-center gap-2">
+                        <Bike className="w-4 h-4" />
+                        Bike #{rental.bike_id}
+                      </h3>
+                      <span className="text-xs px-2 py-1 rounded-full bg-purple-100 text-purple-700 font-medium flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-purple-500 animate-pulse"></span>
+                        On the road
+                      </span>
+                    </div>
+                    
+                    <div className="bg-white p-3 rounded-lg border border-purple-100">
+                      <p className="text-sm text-gray-600 mb-1">
+                        <span className="font-medium text-gray-900">Rider UIN:</span> {rental.user_uin}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        <Clock className="w-3 h-3 inline mr-1" />
+                        Started: {new Date(rental.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* 3. Reports Section */}
         <div className="bg-white rounded-2xl shadow-sm border">
           <div className="p-6 border-b flex items-center justify-between">
             <h2 className="text-lg font-bold flex items-center gap-2">
@@ -283,7 +362,6 @@ export default function AdminDashboard() {
 
                 return (
                   <div key={report.id} className="p-4 md:p-6">
-                    {/* Row header */}
                     <div className="flex items-start justify-between gap-4">
                       <button
                         onClick={() => setExpandedReport(isExpanded ? null : report.id)}
@@ -315,7 +393,6 @@ export default function AdminDashboard() {
                         </span>
                       </button>
 
-                      {/* Action buttons */}
                       <div className="flex items-center gap-2 shrink-0">
                         {!isEditing && (
                           <button
@@ -337,7 +414,6 @@ export default function AdminDashboard() {
                       </div>
                     </div>
 
-                    {/* Expanded detail / edit form */}
                     {isExpanded && (
                       <div className="mt-4 ml-8 space-y-3">
                         {report.created_at && (

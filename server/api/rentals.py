@@ -28,33 +28,79 @@ class ReturnRequest(BaseModel):
     slot_id: int
     end_station_id: int
 
-# 1. ISHAN GET /api/stations (with available slots)
+
+# 1. GET /stations (Now includes docked_bikes list!)
 @router.get("/stations")
 async def get_stations():
+    """
+    Fetches all stations and calculates their capacity, available bikes, 
+    AND which specific bikes are docked.
+    """
     try:
-        response = supabase.table("station").select("*").execute()
-        return {"stations": response.data}
+        stations_res = supabase.table("station").select("*").execute()
+        stations = stations_res.data
+
+        slots_res = supabase.table("slots").select("station_id, occupied_bike").execute()
+        slots = slots_res.data
+
+        for station in stations:
+            station_slots = [s for s in slots if str(s.get("station_id")) == str(station.get("id"))]
+            station["total_capacity"] = len(station_slots)
+            
+            # 🚀 Collect the actual IDs of the bikes docked here
+            docked_bikes = [
+                s.get("occupied_bike") for s in station_slots 
+                if s.get("occupied_bike") is not None and str(s.get("occupied_bike")) != "0"
+            ]
+            
+            station["available_slots"] = len(docked_bikes)
+            # Send the list of bikes to Next.js!
+            station["docked_bikes"] = docked_bikes 
+
+        return {"stations": stations}
+
     except Exception as e:
         logger.error(f"Failed to fetch stations: {e}")
         raise HTTPException(status_code=500, detail="Could not fetch stations")
 
-# 2. ISHAN GET /api/stations/{station_id}/bikes
+
+# 2. GET /stations/{station_id}/bikes
 @router.get("/stations/{station_id}/bikes")
 async def get_station_bikes(station_id: int):
     try:
-        response = supabase.table("slots").select("*").eq("station_id", station_id).execute()
-        slots = []
-        for slot in response.data:
-            if slot["occupied_bike"] not in [None, 0]:
-                slots.append(slot["occupied_bike"])
+        slots_response = supabase.table("slots") \
+            .select("occupied_bike, id") \
+            .eq("station_id", station_id) \
+            .neq("occupied_bike", 0) \
+            .execute()
+            
+        if not slots_response.data:
+            return [] 
 
-        return {"bikes": slots}
+        bike_ids = [slot["occupied_bike"] for slot in slots_response.data if slot["occupied_bike"]]
+
+        if not bike_ids:
+            return []
+
+        bikes_response = supabase.table("bikes") \
+            .select("*") \
+            .in_("id", bike_ids) \
+            .execute()
+
+        bikes = bikes_response.data
+        for bike in bikes:
+            matching_slot = next((slot for slot in slots_response.data if slot["occupied_bike"] == bike["id"]), None)
+            if matching_slot:
+                bike["slot_id"] = matching_slot["id"]
+
+        return bikes
 
     except Exception as e:
-        logger.error(f"Failed to fetch bikes in station {station_id}: {e}")
-        raise HTTPException(status_code=500, detail="Could not fetch stations")
+        logger.error(f"Failed to fetch bikes for station {station_id}: {e}")
+        raise HTTPException(status_code=500, detail="Could not fetch station bikes")
 
-# 3. ISHAN POST /api/rentals/borrow (Phase 1)
+
+# 3. POST /rentals/borrow (Phase 1)
 @router.post("/rentals/borrow", status_code=201)
 async def borrow_bike(req: BorrowRequest):
     try:
@@ -66,6 +112,7 @@ async def borrow_bike(req: BorrowRequest):
 
         supabase.table("bikes").update({"status": "in_use"}).eq("id", req.bike_id).execute()
         supabase.table("user").update({"status": "Borrowing"}).eq("uin", req.user_uin).execute()
+        
         rental_data = {
             "user_uin": req.user_uin,
             "bike_id": req.bike_id,
@@ -84,7 +131,7 @@ async def borrow_bike(req: BorrowRequest):
         raise HTTPException(status_code=500, detail="Server error during borrow process")
 
 
-# 4. ISHAN POST /api/rentals/return (Phase 2)
+# 4. POST /rentals/return (Phase 2)
 @router.post("/rentals/return", status_code=200)
 async def return_bike(req: ReturnRequest):
     try:
@@ -121,12 +168,33 @@ async def return_bike(req: ReturnRequest):
         logger.error(f"Return failed: {e}")
         raise HTTPException(status_code=500, detail="Server error during return process")
 
-# 5. ISHAN GET /api/users/{uin}/status
-@router.post("/users/{uin}/status")
+
+# 5. GET /users/{uin}/status 
+@router.get("/users/{uin}/status")
 async def get_user_status(uin: int):
     try:
         response = supabase.table("user").select("*").eq("uin", uin).execute()
+        if not response.data:
+            raise HTTPException(status_code=404, detail="User not found")
+            
         return {"status": response.data[-1]["status"]}  
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Failed to fetch rental status for user {uin}: {e}")
-        raise HTTPException(status_code=500, detail="user status")
+        raise HTTPException(status_code=500, detail="Server error while checking user status")
+
+
+# 6. 🚀 NEW: GET /rentals/active 
+@router.get("/rentals/active")
+async def get_active_rentals():
+    """
+    Fetches all bikes currently being rented by users.
+    """
+    try:
+        # If end_time is null, it means the user hasn't returned it yet!
+        response = supabase.table("rental").select("*").is_("end_time", "null").execute()
+        return {"active_rentals": response.data}
+    except Exception as e:
+        logger.error(f"Failed to fetch active rentals: {e}")
+        raise HTTPException(status_code=500, detail="Failed to fetch active rentals")
