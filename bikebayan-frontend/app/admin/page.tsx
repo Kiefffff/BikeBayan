@@ -2,11 +2,11 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { getStations, getReports, updateReport, deleteReport, getActiveRentals } from "@/lib/api";
+import { getStations, getReports, updateReport, deleteReport, getActiveRentals, getFlaggedUsers, clearFlaggedUser } from "@/lib/api";
 import {
   Bike, AlertTriangle, Users, MapPin, RefreshCw, LogOut,
   Flag, CheckCircle, Clock, ChevronDown, ChevronUp,
-  Pencil, Trash2, X, Save, Activity
+  Pencil, Trash2, X, Save, Activity, UserCheck
 } from "lucide-react";
 import Link from "next/link";
 
@@ -32,10 +32,12 @@ export default function AdminDashboard() {
   const [stations, setStations] = useState<any[]>([]);
   const [reports, setReports] = useState<Report[]>([]);
   const [activeRentals, setActiveRentals] = useState<any[]>([]);
+  const [flaggedUsers, setFlaggedUsers] = useState<any[]>([]);
   
   const [loadingStations, setLoadingStations] = useState(true);
   const [loadingReports, setLoadingReports] = useState(true);
   const [loadingActiveRentals, setLoadingActiveRentals] = useState(true);
+  const [loadingFlaggedUsers, setLoadingFlaggedUsers] = useState(true);
   
   const [expandedReport, setExpandedReport] = useState<number | null>(null);
   const [editingReport, setEditingReport] = useState<number | null>(null);
@@ -43,6 +45,7 @@ export default function AdminDashboard() {
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState<number | null>(null);
   const [saveError, setSaveError] = useState("");
+  const [clearingUin, setClearingUin] = useState<number | null>(null);
 
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
@@ -62,6 +65,7 @@ export default function AdminDashboard() {
     fetchStations();
     fetchReports();
     fetchActiveRentals();
+    fetchFlaggedUsersList();
   };
 
   const fetchStations = async () => {
@@ -97,6 +101,33 @@ export default function AdminDashboard() {
       console.error("Failed to fetch active rentals:", err);
     } finally {
       setLoadingActiveRentals(false);
+    }
+  };
+
+  const fetchFlaggedUsersList = async () => {
+    setLoadingFlaggedUsers(true);
+    try {
+      const data = await getFlaggedUsers();
+      setFlaggedUsers(data.flagged_users || []);
+    } catch (err) {
+      console.error("Failed to fetch flagged users:", err);
+    } finally {
+      setLoadingFlaggedUsers(false);
+    }
+  };
+
+  const handleClearUser = async (uin: number) => {
+    if (!confirm(`Are you sure you want to clear User ${uin}? This will allow them to borrow bikes again.`)) return;
+    setClearingUin(uin);
+    try {
+      await clearFlaggedUser(uin);
+      // Remove them from the list instantly
+      setFlaggedUsers(prev => prev.filter(u => u.uin !== uin));
+    } catch (err) {
+      alert("Failed to clear user. Please try again.");
+      console.error(err);
+    } finally {
+      setClearingUin(null);
     }
   };
 
@@ -176,7 +207,7 @@ export default function AdminDashboard() {
               onClick={fetchAllData}
               className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700"
             >
-              <RefreshCw className={`w-4 h-4 ${(loadingStations || loadingReports || loadingActiveRentals) ? "animate-spin" : ""}`} />
+              <RefreshCw className={`w-4 h-4 ${(loadingStations || loadingReports || loadingActiveRentals || loadingFlaggedUsers) ? "animate-spin" : ""}`} />
               Refresh
             </button>
             <button
@@ -220,10 +251,10 @@ export default function AdminDashboard() {
           </div>
           <div className="bg-white p-4 rounded-xl shadow-sm border">
             <div className="flex items-center gap-3">
-              <MapPin className="w-6 h-6 text-green-600" />
+              <Users className="w-6 h-6 text-yellow-600" />
               <div>
-                <p className="text-2xl font-bold">{stations.length}</p>
-                <p className="text-xs text-gray-500">Stations</p>
+                <p className="text-2xl font-bold">{loadingFlaggedUsers ? "—" : flaggedUsers.length}</p>
+                <p className="text-xs text-gray-500">Flagged Users</p>
               </div>
             </div>
           </div>
@@ -266,7 +297,6 @@ export default function AdminDashboard() {
                       </span>
                     </div>
 
-                    {/* NEW: Display specific docked bikes */}
                     <div className="mt-4 pt-4 border-t">
                       <p className="text-xs text-gray-500 mb-2 font-medium uppercase tracking-wider">Currently Docked Bikes:</p>
                       <div className="flex flex-wrap gap-2">
@@ -289,7 +319,7 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        {/* 2. NEW: Bikes Currently In Use */}
+        {/* 2. Bikes Currently In Use */}
         <div className="bg-white rounded-2xl shadow-sm border mb-8">
           <div className="p-6 border-b">
             <h2 className="text-lg font-bold flex items-center gap-2">
@@ -336,7 +366,56 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        {/* 3. Reports Section */}
+        {/* 3. NEW: Flagged Users */}
+        <div className="bg-white rounded-2xl shadow-sm border mb-8">
+          <div className="p-6 border-b">
+            <h2 className="text-lg font-bold flex items-center gap-2">
+              <Users className="w-5 h-5 text-yellow-600" />
+              Flagged Users (Late Returns)
+            </h2>
+          </div>
+          <div className="p-6">
+            {loadingFlaggedUsers ? (
+              <p className="text-gray-500">Loading flagged users...</p>
+            ) : flaggedUsers.length === 0 ? (
+              <div className="text-center py-6">
+                <CheckCircle className="w-12 h-12 text-green-300 mx-auto mb-2" />
+                <p className="text-gray-500 font-medium">All good! No flagged users right now.</p>
+              </div>
+            ) : (
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {flaggedUsers.map(flaggedUser => (
+                  <div key={flaggedUser.uin} className="p-4 rounded-xl border border-yellow-200 bg-yellow-50/50 flex flex-col justify-between">
+                    <div>
+                      <div className="flex justify-between items-start mb-3">
+                        <h3 className="font-bold text-yellow-900 flex items-center gap-2">
+                          <Users className="w-4 h-4" />
+                          UIN: {flaggedUser.uin}
+                        </h3>
+                        <span className="text-xs px-2 py-1 rounded-full bg-red-100 text-red-700 font-medium">
+                          Flagged
+                        </span>
+                      </div>
+                      <p className="text-sm text-gray-600 mb-4">
+                        This user exceeded the 3-hour limit and is currently locked out of the system.
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => handleClearUser(flaggedUser.uin)}
+                      disabled={clearingUin === flaggedUser.uin}
+                      className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors"
+                    >
+                      <UserCheck className="w-4 h-4" />
+                      {clearingUin === flaggedUser.uin ? "Clearing..." : "Clear User"}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* 4. Reports Section */}
         <div className="bg-white rounded-2xl shadow-sm border">
           <div className="p-6 border-b flex items-center justify-between">
             <h2 className="text-lg font-bold flex items-center gap-2">
@@ -383,7 +462,7 @@ export default function AdminDashboard() {
                               {report.resolved ? "Resolved" : "Open"}
                             </span>
                             <span className="text-xs text-gray-400">
-                              Rental #{report.rental_id}
+                              Rental #${report.rental_id}
                             </span>
                           </div>
                           <p className="text-sm text-gray-500 truncate mt-0.5">{report.body}</p>

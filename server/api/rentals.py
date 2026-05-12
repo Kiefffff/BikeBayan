@@ -198,3 +198,41 @@ async def get_active_rentals():
     except Exception as e:
         logger.error(f"Failed to fetch active rentals: {e}")
         raise HTTPException(status_code=500, detail="Failed to fetch active rentals")
+
+@router.get("/users/flagged")
+async def get_flagged_users():
+    """Fetches all users who currently have a 'Flagged' status."""
+    try:
+        response = supabase.table("user").select("*").eq("status", "Flagged").execute()
+        return {"flagged_users": response.data}
+    except Exception as e:
+        logger.error(f"Failed to fetch flagged users: {e}")
+        raise HTTPException(status_code=500, detail="Could not fetch flagged users")
+
+@router.post("/users/{uin}/clear")
+async def clear_flagged_user(uin: int):
+    try:
+
+        missing_bike_check = supabase.table("rental").select("id").eq(
+            "user_uin", uin
+        ).is_("end_station_id", "null").execute()
+
+        if missing_bike_check.data:
+            raise HTTPException(
+                status_code=400, 
+                detail="Cannot clear user: Their bike has not been returned to a station yet."
+            )
+            
+        response = supabase.table("user").update({"status": "Cleared"}).eq("uin", uin).execute()
+        
+        if not response.data:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        logger.info(f"Admin manually cleared User {uin} (Return Verified).")
+        return {"message": f"User {uin} successfully cleared."}
+        
+    except HTTPException:
+        raise 
+    except Exception as e:
+        logger.error(f"Failed to clear user {uin}: {e}")
+        raise HTTPException(status_code=500, detail="Could not clear user")

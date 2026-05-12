@@ -75,6 +75,8 @@ async def user_status_check(req: EspUserStatusRequest):
             return PlainTextResponse("Cleared")
         elif status == "Borrowing":
             return PlainTextResponse("Borrowing")
+        elif status == "Flagged":
+            return PlainTextResponse("Flagged")
         else:
             return PlainTextResponse("-1")
     except Exception as e:

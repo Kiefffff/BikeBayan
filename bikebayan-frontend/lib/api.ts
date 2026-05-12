@@ -1,7 +1,7 @@
 // lib/api.ts
 import axios from 'axios';
 
-const API_BASE = "http://127.0.0.1:8000/";
+const API_BASE = "http://54.255.202.140:8000/";
 
 export const api = axios.create({
   baseURL: API_BASE,
@@ -54,4 +54,14 @@ export const submitReport = async (email: string, body: string) => {
 export const getActiveRentals = async () => {
   const res = await api.get("/api/rentals/active");
   return res.data; // { active_rentals: [...] }
+};
+
+export const getFlaggedUsers = async () => {
+  const res = await api.get("/api/users/flagged");
+  return res.data; // { flagged_users: [...] }
+};
+
+export const clearFlaggedUser = async (uin: number) => {
+  const res = await api.post(`/api/users/${uin}/clear`);
+  return res.data;
 };
