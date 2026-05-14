@@ -67,10 +67,11 @@ app = FastAPI(title="BikeBayan", lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
      allow_origins=[
-        "http://localhost:3000",                    # Local dev
-        "https://bikebayan.vercel.app",             # Public Vercel app
-        "https://bikebayan-admin.vercel.app",       # Admin Vercel app
-        "https://*.vercel.app",                      # All Vercel previews
+        "http://localhost:3000",
+        "https://bikebayan.vercel.app",
+        "https://bikebayan-admin.vercel.app",
+        "https://*.vercel.app",
+        "https://removable-dirt-table-grades.trycloudflare.com",  # Tunnel
     ],
     allow_credentials=True,
     allow_methods=["*"],
