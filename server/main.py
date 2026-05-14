@@ -31,11 +31,11 @@ async def check_late_bikes_loop():
                 now_time = datetime.now(timezone.utc)
                 
                 for rental in active_rentals.data:
-                    start_time_str = rental['start_time'].replace('Z', '')
-                    start_time = datetime.fromisoformat(start_time_str)
+                    st_str = rental['start_time'].replace('Z', '+00:00')
+                    start_time = datetime.fromisoformat(st_str)
                     
                     if start_time.tzinfo is None:
-                        start_time = start_time.replace(tzinfo=PH_TZ)
+                        start_time = start_time.replace(tzinfo=timezone.utc)
                         
                     duration_hours = (now_time - start_time).total_seconds() / 3600.0
                     
@@ -66,7 +66,11 @@ app = FastAPI(title="BikeBayan", lifespan=lifespan)
 # CORS config
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # TODO: update to frontend URL in production
+     allow_origins=[
+        "http://localhost:3000",
+        "http://54.255.202.140:3000",   # Frontend on EC2
+        "http://54.255.202.140:8000",   # Backend on EC2
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

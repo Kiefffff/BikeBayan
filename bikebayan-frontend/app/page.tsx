@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Shield, MapPin, Clock, Bike, Flag } from "lucide-react";
-import { getStations } from "@/lib/api"; // <-- Make sure to import this!
+import { getStations } from "@/lib/api";
 
 export default function Home() {
   const [hasSession, setHasSession] = useState(false);
@@ -12,7 +12,6 @@ export default function Home() {
   const [loadingStations, setLoadingStations] = useState(true);
 
   useEffect(() => {
-    // 1. Check for active user session
     const stored = localStorage.getItem("user");
     if (stored) {
       try {
@@ -25,7 +24,6 @@ export default function Home() {
       }
     }
 
-    // 2. Fetch live station data
     const fetchLiveStations = async () => {
       try {
         const data = await getStations();
@@ -42,7 +40,6 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-white">
-      {/* Navbar */}
       <nav className="border-b bg-white/80 backdrop-blur-sm sticky top-0 z-50">
         <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
@@ -56,6 +53,7 @@ export default function Home() {
               <Flag className="w-4 h-4" />
               Report Issue
             </Link>
+            {/*
             <Link
               href="/admin/login"
               className="text-gray-600 hover:text-purple-600 font-medium text-sm flex items-center gap-1 transition-colors"
@@ -63,16 +61,16 @@ export default function Home() {
               <Shield className="w-4 h-4" />
               Admin
             </Link>
+            */}
           </div>
         </div>
       </nav>
 
-      {/* Hero Section */}
       <section className="py-20 px-4 text-center bg-gradient-to-b from-blue-50 to-white">
         <div className="max-w-3xl mx-auto">
           <Image src="/bikebayan-logo.svg" alt="BikeBayan" width={400} height={120} className="mx-auto mb-6" priority />
           <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
-            Mahal ang Gas. Pero mas mahal kita.
+            Iwas Trapik, Iwas Gastos.
           </h1>
           <p className="text-lg text-gray-600 mb-10">
             National ID-verified bike sharing for Metro Manila. Secure, accessible, and accountable.
@@ -101,7 +99,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* NEW: Live Station Status Section */}
       <section className="py-12 px-4 bg-white border-t border-b">
         <div className="max-w-4xl mx-auto">
           <h2 className="text-2xl font-bold text-center mb-8 flex items-center justify-center gap-2 text-gray-900">
@@ -143,7 +140,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Features Section */}
       <section className="py-16 px-4 bg-gray-50">
         <div className="max-w-6xl mx-auto">
           <h2 className="text-3xl font-bold text-center mb-12">Why BikeBayan?</h2>
@@ -173,7 +169,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Footer */}
       <footer className="py-8 px-4 border-t text-center text-gray-500 text-sm bg-white">
         <p>© 2026 BikeBayan • Team 13 | CS145 Project | University of the Philippines</p>
       </footer>
