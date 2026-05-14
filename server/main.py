@@ -68,10 +68,8 @@ app.add_middleware(
     CORSMiddleware,
      allow_origins=[
         "http://localhost:3000",
-        "https://bikebayan.vercel.app",
-        "https://bikebayan-admin.vercel.app",
-        "https://*.vercel.app",
-        "https://removable-dirt-table-grades.trycloudflare.com",  # Tunnel
+        "http://54.255.202.140:3000",   # Frontend on EC2
+        "http://54.255.202.140:8000",   # Backend on EC2
     ],
     allow_credentials=True,
     allow_methods=["*"],
