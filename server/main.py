@@ -66,7 +66,12 @@ app = FastAPI(title="BikeBayan", lifespan=lifespan)
 # CORS config
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # TODO: update to frontend URL in production
+     allow_origins=[
+        "http://localhost:3000",                    # Local dev
+        "https://bikebayan.vercel.app",             # Public Vercel app
+        "https://bikebayan-admin.vercel.app",       # Admin Vercel app
+        "https://*.vercel.app",                      # All Vercel previews
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
