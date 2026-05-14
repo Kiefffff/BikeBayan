@@ -70,7 +70,7 @@ export default function Home() {
         <div className="max-w-3xl mx-auto">
           <Image src="/bikebayan-logo.svg" alt="BikeBayan" width={400} height={120} className="mx-auto mb-6" priority />
           <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
-            Mahal ang Gas. Pero mas mahal kita.
+            Iwas Trapik, Iwas Gastos.
           </h1>
           <p className="text-lg text-gray-600 mb-10">
             National ID-verified bike sharing for Metro Manila. Secure, accessible, and accountable.
