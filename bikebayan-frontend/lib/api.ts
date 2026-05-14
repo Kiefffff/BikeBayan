@@ -1,7 +1,7 @@
 // lib/api.ts
 import axios from 'axios';
 
-const API_BASE = "http://54.255.202.140:8000/";
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8000";
 
 export const api = axios.create({
   baseURL: API_BASE,
