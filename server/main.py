@@ -66,11 +66,7 @@ app = FastAPI(title="BikeBayan", lifespan=lifespan)
 # CORS config
 app.add_middleware(
     CORSMiddleware,
-     allow_origins=[
-        "http://localhost:3000",
-        "http://54.255.202.140:3000",   # Frontend on EC2
-        "http://54.255.202.140:8000",   # Backend on EC2
-    ],
+    allow_origins=["*"], # Allows any frontend to connect
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
