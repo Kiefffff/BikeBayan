@@ -52,7 +52,7 @@ export default function ReportPage() {
           ← Back to Home
         </Link>
 
-        <h1 className="text-3xl font-bold text-center mb-2">🚲 Report an Issue</h1>
+        <h1 className="text-3xl font-bold text-center mb-2 text-black">🚲 Report an Issue</h1>
         <p className="text-black text-center mb-8">
           Let us know about a problem with your rental
         </p>
@@ -61,7 +61,7 @@ export default function ReportPage() {
         {result === "success" && (
           <div className="bg-white p-6 rounded-2xl shadow-lg text-center">
             <CheckCircle className="w-12 h-12 text-green-600 mx-auto mb-3" />
-            <h2 className="text-xl font-bold mb-2">Report Submitted</h2>
+            <h2 className="text-xl font-bold mb-2 text-black">Report Submitted</h2>
             <p className="text-black mb-6">
               We've received your report and will look into it shortly.
             </p>
@@ -78,14 +78,14 @@ export default function ReportPage() {
         {result === "duplicate" && (
           <div className="bg-white p-6 rounded-2xl shadow-lg text-center">
             <AlertCircle className="w-12 h-12 text-yellow-500 mx-auto mb-3" />
-            <h2 className="text-xl font-bold mb-2">Report Already Exists</h2>
+            <h2 className="text-xl font-bold mb-2 text-black">Report Already Exists</h2>
             <p className="text-black mb-6">
               There's already an open report for your current rental. We'll resolve
               it before a new one can be submitted.
             </p>
             <button
               onClick={handleReset}
-              className="w-full bg-gray-200 text-gray-700 py-3 rounded-xl font-bold hover:bg-gray-300"
+              className="w-full bg-gray-200 text-black py-3 rounded-xl font-bold hover:bg-gray-300"
             >
               Go Back
             </button>
@@ -96,7 +96,7 @@ export default function ReportPage() {
         {result === "error" && (
           <div className="bg-white p-6 rounded-2xl shadow-lg text-center">
             <XCircle className="w-12 h-12 text-red-500 mx-auto mb-3" />
-            <h2 className="text-xl font-bold mb-2">Submission Failed</h2>
+            <h2 className="text-xl font-bold mb-2 text-black">Submission Failed</h2>
             <p className="text-black mb-6">{errorMsg}</p>
             <button
               onClick={handleReset}
@@ -110,7 +110,7 @@ export default function ReportPage() {
         {/* Form */}
         {result === null && (
           <div className="bg-white p-6 rounded-2xl shadow-lg">
-            <h2 className="text-xl font-bold mb-4 flex items-center">
+            <h2 className="text-xl font-bold mb-4 flex items-center text-black">
               <FileText className="w-5 h-5 mr-2 text-blue-600" />
               Report Details
             </h2>
