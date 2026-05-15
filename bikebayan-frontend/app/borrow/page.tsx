@@ -95,7 +95,7 @@ export default function BorrowPage() {
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 border rounded-xl"
+                    className="w-full pl-10 pr-4 py-3 border rounded-xl text-black"
                     placeholder="your@email.com"
                     disabled={loading}
                   />
@@ -110,7 +110,7 @@ export default function BorrowPage() {
                     type="text"
                     value={otp}
                     onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                    className="w-full pl-10 pr-4 py-3 border rounded-xl text-center text-2xl tracking-widest font-mono"
+                    className="w-full pl-10 pr-4 py-3 border rounded-xl text-center text-2xl tracking-widest font-mono text-black"
                     placeholder="••••••"
                     maxLength={6}
                     disabled={loading}
