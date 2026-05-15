@@ -66,7 +66,12 @@ app = FastAPI(title="BikeBayan", lifespan=lifespan)
 # CORS config
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # Allows any frontend to connect
+    allow_origins=[
+        "http://localhost:3000",
+        "http://47.129.208.70:3000",
+        "http://bikebayan.duckdns.org:3000",  
+        "http://*.duckdns.org:3000",          #
+    ],, # Allows any frontend to connect
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
