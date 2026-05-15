@@ -16,41 +16,39 @@ from datetime import datetime, timezone
 import asyncio
 from dotenv import load_dotenv
 from datetime import datetime, timezone, timedelta
+
 load_dotenv()
 supabase: Client = create_client(
     os.getenv("SUPABASE_URL"),
     os.getenv("SUPABASE_KEY")
 )
+
 PH_TZ = timezone(timedelta(hours=8))
 async def check_late_bikes_loop():
     while True:
         try:
             active_rentals = supabase.table("rental").select("user_uin, start_time").is_("end_time", None).execute()
-            
             if active_rentals.data:
                 now_time = datetime.now(timezone.utc)
-                
                 for rental in active_rentals.data:
                     st_str = rental['start_time'].replace('Z', '+00:00')
-                    start_time = datetime.fromisoformat(st_str)
                     
+                    start_time = datetime.fromisoformat(st_str)
                     if start_time.tzinfo is None:
                         start_time = start_time.replace(tzinfo=timezone.utc)
                         
                     duration_hours = (now_time - start_time).total_seconds() / 3600.0
-                    
                     if duration_hours > 3: 
-                        
                         user_check = supabase.table("user").select("status").eq("uin", rental["user_uin"]).execute()
-                        
                         if user_check.data and user_check.data[0]["status"] != "Flagged":
                             supabase.table("user").update({"status": "Flagged"}).eq("uin", rental["user_uin"]).execute()
                             print(f"AUTOMATIC FLAG: User {rental['user_uin']} exceeded 3 hours.")
 
         except Exception as e:
             print(f"Background check failed: {e}")
-            
-        await asyncio.sleep(300)
+        
+        # loop interval
+        await asyncio.sleep(15)
 
 
 @asynccontextmanager
