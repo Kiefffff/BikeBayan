@@ -2,11 +2,12 @@
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import PlainTextResponse
 from pydantic import BaseModel
-from mosip_auth_sdk import MOSIPAuthenticator
-from dynaconf import Dynaconf
+# from mosip_auth_sdk import MOSIPAuthenticator
+# from dynaconf import Dynaconf
 import logging
 import os
-import asyncio  
+import asyncio 
+import requests
 from supabase import create_client, Client
 from dotenv import load_dotenv
 
@@ -17,6 +18,8 @@ supabase: Client = create_client(
 )
 
 router = APIRouter(prefix="/auth", tags=["authentication"])
+
+MOCK_SERVER_URL = "https://cs145-iot-cup-1745973870.ap-southeast-1.elb.amazonaws.com"
 
 # Dictionary to hold the transaction IDs
 otp_transactions: dict[str, str] = {}
@@ -33,11 +36,6 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-config = Dynaconf(settings_files=["./config.toml"], environments=False)
-auth_instance = MOSIPAuthenticator(config=config)
-
-def get_authenticator():
-    return auth_instance
 
 class OTPRequest(BaseModel):
     uin: str
@@ -46,26 +44,32 @@ class VerifyRequest(BaseModel):
     email: str
     otp: str
 
+
 def _process_generate_otp(req: OTPRequest):
-    auth = get_authenticator()
-    resp = auth.genotp(
-        individual_id=req.uin,
-        individual_id_type="UIN",
-        email=True,
-        phone=False,
+    resp = requests.post(
+        f"{MOCK_SERVER_URL}/api/v1/auth/otp",
+        json={
+            "individual_id": req.uin,
+            "email": True,
+            "phone": False,
+        },
+        verify=False,
     )
     return resp.json()
 
 def _process_verify_otp(req: VerifyRequest, uin: str, transaction_id: str):
-    auth = get_authenticator()
-    resp = auth.auth(
-        individual_id=uin,
-        individual_id_type="UIN",
-        otp_value=req.otp,
-        txn_id=transaction_id,
-        consent=True
+    resp = requests.post(
+        f"{MOCK_SERVER_URL}/api/v1/auth/yes-no",
+        json={
+            "individual_id": uin,
+            "consent": True,
+            "otp_value": req.otp,
+            "txn_id": transaction_id,
+        },
+        verify=False,
     )
     return resp.json()
+
 
 @router.post("/generate-otp")
 async def generate_otp(req: OTPRequest):
@@ -74,12 +78,18 @@ async def generate_otp(req: OTPRequest):
             asyncio.to_thread(_process_generate_otp, req),
             timeout=30.0  # 30 seconds timeout
         )
-        
+
+        if data.get("errors"):
+            logger.error(f"OTP generation failed: {data['errors']}")
+            return PlainTextResponse("-1")
+
         # Store transaction ID
         otp_transactions[req.uin] = data["transactionID"]
         esp_auth_status[req.uin] = False
-        
-        logger.info(f"OTP generated for UIN={req.uin}")
+
+        # Log OTP from mock data
+        mock_otp = data["response"]["otp"]
+        logger.info(f"MOCK OTP generated for UIN={req.uin} | [MOCK OTP]={mock_otp}")
         return PlainTextResponse("success")
         
     except asyncio.TimeoutError:
@@ -94,8 +104,6 @@ async def generate_otp(req: OTPRequest):
 @router.post("/verify-otp")
 async def verify_otp(req: VerifyRequest):
     try:
-        email = req.email
-
         user = supabase.table("user").select("uin").eq("email", req.email).execute()
         if not user.data:
             raise HTTPException(status_code=404, detail="User not found")
@@ -109,7 +117,11 @@ async def verify_otp(req: VerifyRequest):
             asyncio.to_thread(_process_verify_otp, req, uin, transaction_id),
             timeout=30.0  # 30 seconds timeout
         )
-        
+
+        if data.get("errors"):
+            logger.warning(f"OTP verification errors for UIN={uin}: {data['errors']}")
+            return {"success": False}
+            
         auth_status = data.get("response", {}).get("authStatus", False)
 
         if auth_status:

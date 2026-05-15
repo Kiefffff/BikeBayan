@@ -1,11 +1,9 @@
 import os
 import logging
 import asyncio
+import requests
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-from mosip_auth_sdk.models import DemographicsModel
-from mosip_auth_sdk import MOSIPAuthenticator
-from dynaconf import Dynaconf
 from supabase import create_client, Client
 from dotenv import load_dotenv
 from fastapi.responses import PlainTextResponse
@@ -17,9 +15,7 @@ supabase: Client = create_client(
     os.getenv("SUPABASE_KEY")
 )
 
-def get_authenticator():
-    config = Dynaconf(settings_files=["./config.toml"], environments=False)
-    return MOSIPAuthenticator(config=config)
+MOCK_SERVER_URL = "https://cs145-iot-cup-1745973870.ap-southeast-1.elb.amazonaws.com"
 
 class VerifyRequest(BaseModel):
     uin: str
@@ -51,40 +47,34 @@ def process_verification(req: VerifyRequest):
 
         logging.info(f"Verify scan: UIN={uin}")
 
-        # 1. Package demographics data for Demo Auth
-        name_list = [{"language": "eng", "value": name}] if name else None
-        demographics_data = DemographicsModel(name=name_list, dob=dob)
-
-        authenticator = get_authenticator()
-
-        # 2. Call KYC instead of standard Auth
-        response = authenticator.kyc(
-            individual_id=uin,
-            individual_id_type="UIN",
-            demographic_data=demographics_data,
-            consent=True,
+        # 1. Call KYC endpoint on the mock server
+        response = requests.post(
+            f"{MOCK_SERVER_URL}/api/v1/auth/kyc",
+            json={
+                "individual_id": uin,
+                "consent": True,
+                "name": name,
+                "dob": dob,
+            },
+            verify=False,
         )
 
         kyc_response_body = response.json()
 
-        # Check for MOSIP errors
-        if "errors" in kyc_response_body and kyc_response_body["errors"]:
+        # 2. Check for MOSIP errors
+        if kyc_response_body.get("errors"):
             logging.error(f"MOSIP KYC Failed: {kyc_response_body['errors']}")
             raise HTTPException(status_code=401, detail="MOSIP verification failed")
 
         # 3. Decrypt and Extract the Data
-        decrypted_response = authenticator.decrypt_response(kyc_response_body)
+        kyc_data = kyc_response_body.get("response", {})
 
-        extracted_email = decrypted_response.get("email") or decrypted_response.get("emailId")
-        extracted_name = decrypted_response.get("name_eng")
+        if not kyc_data.get("kycStatus"):
+            logging.error("KYC status is false")
+            raise HTTPException(status_code=401, detail="MOSIP verification failed")
 
-        # Fallback for name based on standard multi-language list just in case the policy format changes later
-        raw_name = decrypted_response.get("name")
-        if not extracted_name:
-            if isinstance(raw_name, list) and len(raw_name) > 0:
-                extracted_name = raw_name[0].get("value")
-            elif isinstance(raw_name, str):
-                extracted_name = raw_name
+        extracted_email = kyc_data.get("email")
+        extracted_name = kyc_data.get("name_eng")
 
         # Use MOSIP verified name if available, otherwise fallback to the physical scanned name
         final_name = extracted_name if extracted_name else name
