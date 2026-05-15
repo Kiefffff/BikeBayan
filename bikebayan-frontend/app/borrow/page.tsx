@@ -27,7 +27,7 @@ export default function BorrowPage() {
   const handleVerify = async () => {
     const cleanEmail = email.trim().toLowerCase();
     const cleanOtp = otp.replace(/\D/g, "");
-    
+
     if (!cleanEmail.includes("@") || cleanOtp.length !== 6) {
       setError("Enter a valid email and 6-digit OTP");
       return;
@@ -62,12 +62,12 @@ export default function BorrowPage() {
   return (
     <div className="min-h-screen bg-gray-50 p-4 flex items-center justify-center">
       <div className="max-w-md w-full">
-        <Link href="/" className="inline-flex items-center text-gray-600 mb-6">
+        <Link href="/" className="inline-flex items-center text-black mb-6">
           ← Back to Home
         </Link>
 
         <h1 className="text-3xl font-bold text-center mb-2">🚲 Borrow a Bike</h1>
-        <p className="text-gray-600 text-center mb-8">Enter your email and OTP</p>
+        <p className="text-black text-center mb-8">Enter your email and OTP</p>
 
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-6">
@@ -82,15 +82,15 @@ export default function BorrowPage() {
               <Lock className="w-5 h-5 mr-2 text-blue-600" />
               Verify Identity
             </h2>
-            <p className="text-gray-600 text-sm mb-4">
+            <p className="text-black text-sm mb-4">
               After scanning your National ID, enter the email and 6-digit OTP you received.
             </p>
 
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                <label className="block text-sm font-medium text-black mb-1">Email</label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-black" />
                   <input
                     type="email"
                     value={email}
@@ -103,9 +103,9 @@ export default function BorrowPage() {
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">OTP (6 digits)</label>
+                <label className="block text-sm font-medium text-black mb-1">OTP (6 digits)</label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-black" />
                   <input
                     type="text"
                     value={otp}
@@ -137,7 +137,7 @@ export default function BorrowPage() {
           <div className="bg-white p-6 rounded-2xl shadow-lg text-center">
             <CheckCircle className="w-12 h-12 text-green-600 mx-auto mb-3" />
             <h2 className="text-xl font-bold mb-2">Verified!</h2>
-            <p className="text-gray-600 mb-4">Select a bike at the station to unlock.</p>
+            <p className="text-black mb-4">Select a bike at the station to unlock.</p>
             <Link 
               href={`/borrow/select-bike?email=${encodeURIComponent(email)}`}
               className="block w-full bg-green-600 text-white py-3 rounded-xl font-bold hover:bg-green-700 flex items-center justify-center gap-2"
@@ -151,7 +151,7 @@ export default function BorrowPage() {
                 setOtp("");
                 setError("");
               }}
-              className="w-full mt-3 text-gray-600 py-2 text-sm hover:text-gray-800"
+              className="w-full mt-3 text-black py-2 text-sm hover:text-black"
             >
               Verify Another Email
             </button>

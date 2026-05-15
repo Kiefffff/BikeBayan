@@ -48,7 +48,7 @@ export default function Home() {
           <div className="flex items-center gap-6">
             <Link
               href="/report"
-              className="text-gray-600 hover:text-red-600 font-medium text-sm flex items-center gap-1 transition-colors"
+              className="text-black hover:text-red-600 font-medium text-sm flex items-center gap-1 transition-colors"
             >
               <Flag className="w-4 h-4" />
               Report Issue
@@ -56,7 +56,7 @@ export default function Home() {
             {/*
             <Link
               href="/admin/login"
-              className="text-gray-600 hover:text-purple-600 font-medium text-sm flex items-center gap-1 transition-colors"
+              className="text-black hover:text-purple-600 font-medium text-sm flex items-center gap-1 transition-colors"
             >
               <Shield className="w-4 h-4" />
               Admin
@@ -69,10 +69,10 @@ export default function Home() {
       <section className="py-20 px-4 text-center bg-gradient-to-b from-blue-50 to-white">
         <div className="max-w-3xl mx-auto">
           <Image src="/bikebayan-logo.svg" alt="BikeBayan" width={400} height={120} className="mx-auto mb-6" priority />
-          <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+          <h1 className="text-4xl md:text-5xl font-bold text-black mb-4">
             Iwas Trapik, Iwas Gastos.
           </h1>
-          <p className="text-lg text-gray-600 mb-10">
+          <p className="text-lg text-black mb-10">
             National ID-verified bike sharing for Metro Manila. Secure, accessible, and accountable.
           </p>
 
@@ -93,7 +93,7 @@ export default function Home() {
             </Link>
           </div>
 
-          <p className="text-sm text-gray-500 mt-6">
+          <p className="text-sm text-black mt-6">
             Scan National ID at station • Enter email + OTP to unlock
           </p>
         </div>
@@ -101,17 +101,17 @@ export default function Home() {
 
       <section className="py-12 px-4 bg-white border-t border-b">
         <div className="max-w-4xl mx-auto">
-          <h2 className="text-2xl font-bold text-center mb-8 flex items-center justify-center gap-2 text-gray-900">
+          <h2 className="text-2xl font-bold text-center mb-8 flex items-center justify-center gap-2 text-black">
             <MapPin className="w-6 h-6 text-blue-600" />
             Live Station Availability
           </h2>
           
           {loadingStations ? (
             <div className="flex justify-center items-center py-8">
-              <span className="animate-pulse text-gray-500 font-medium">Checking live stations...</span>
+              <span className="animate-pulse text-black font-medium">Checking live stations...</span>
             </div>
           ) : stations.length === 0 ? (
-            <p className="text-center text-gray-500">No stations are currently online.</p>
+            <p className="text-center text-black">No stations are currently online.</p>
           ) : (
             <div className="grid sm:grid-cols-2 gap-4">
               {stations.map(station => {
@@ -119,8 +119,8 @@ export default function Home() {
                 return (
                   <div key={station.id} className="p-5 rounded-2xl border bg-gray-50 flex justify-between items-center hover:shadow-md transition border-gray-200">
                     <div>
-                      <h3 className="font-bold text-gray-900 text-lg">{station.name}</h3>
-                      <p className="text-sm text-gray-500 mt-0.5">Capacity: {station.total_capacity || 0} docks</p>
+                      <h3 className="font-bold text-black text-lg">{station.name}</h3>
+                      <p className="text-sm text-black mt-0.5">Capacity: {station.total_capacity || 0} docks</p>
                     </div>
                     <div className="text-right">
                       <span className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-bold ${
@@ -142,34 +142,34 @@ export default function Home() {
 
       <section className="py-16 px-4 bg-gray-50">
         <div className="max-w-6xl mx-auto">
-          <h2 className="text-3xl font-bold text-center mb-12">Why BikeBayan?</h2>
+          <h2 className="text-3xl font-bold text-center mb-12 text-black">Why BikeBayan?</h2>
           <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
             <div className="bg-white p-6 rounded-2xl shadow-sm border hover:shadow-md transition flex flex-col items-center text-center">
               <div className="w-16 h-16 bg-blue-100 rounded-xl flex items-center justify-center mb-4">
                 <Shield className="w-8 h-8 text-blue-600" />
               </div>
-              <h3 className="text-xl font-bold mb-3">National ID Verified</h3>
-              <p className="text-gray-600 text-sm">Every rental is tied to your PhilSys ID. No anonymous borrowing.</p>
+              <h3 className="text-xl font-bold mb-3 text-black">National ID Verified</h3>
+              <p className="text-black text-sm">Every rental is tied to your PhilSys ID. No anonymous borrowing.</p>
             </div>
             <div className="bg-white p-6 rounded-2xl shadow-sm border hover:shadow-md transition flex flex-col items-center text-center">
               <div className="w-16 h-16 bg-green-100 rounded-xl flex items-center justify-center mb-4">
                 <MapPin className="w-8 h-8 text-green-600" />
               </div>
-              <h3 className="text-xl font-bold mb-3">Multi-Station Network</h3>
-              <p className="text-gray-600 text-sm">Borrow at Station A, return at Station B. Real-time sync.</p>
+              <h3 className="text-xl font-bold mb-3 text-black">Multi-Station Network</h3>
+              <p className="text-black text-sm">Borrow at Station A, return at Station B. Real-time sync.</p>
             </div>
             <div className="bg-white p-6 rounded-2xl shadow-sm border hover:shadow-md transition flex flex-col items-center text-center">
               <div className="w-16 h-16 bg-yellow-100 rounded-xl flex items-center justify-center mb-4">
                 <Clock className="w-8 h-8 text-yellow-600" />
               </div>
-              <h3 className="text-xl font-bold mb-3">Secure & Accountable</h3>
-              <p className="text-gray-600 text-sm">Smart locks, RFID validation, and automated deadline enforcement.</p>
+              <h3 className="text-xl font-bold mb-3 text-black">Secure & Accountable</h3>
+              <p className="text-black text-sm">Smart locks, RFID validation, and automated deadline enforcement.</p>
             </div>
           </div>
         </div>
       </section>
 
-      <footer className="py-8 px-4 border-t text-center text-gray-500 text-sm bg-white">
+      <footer className="py-8 px-4 border-t text-center text-black text-sm bg-white">
         <p>© 2026 BikeBayan • Team 13 | CS145 Project | University of the Philippines</p>
       </footer>
     </div>

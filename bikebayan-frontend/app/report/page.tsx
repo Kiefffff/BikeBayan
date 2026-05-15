@@ -48,12 +48,12 @@ export default function ReportPage() {
   return (
     <div className="min-h-screen bg-gray-50 p-4 flex items-center justify-center">
       <div className="max-w-md w-full">
-        <Link href="/" className="inline-flex items-center text-gray-600 mb-6">
+        <Link href="/" className="inline-flex items-center text-black mb-6">
           ← Back to Home
         </Link>
 
         <h1 className="text-3xl font-bold text-center mb-2">🚲 Report an Issue</h1>
-        <p className="text-gray-600 text-center mb-8">
+        <p className="text-black text-center mb-8">
           Let us know about a problem with your rental
         </p>
 
@@ -62,7 +62,7 @@ export default function ReportPage() {
           <div className="bg-white p-6 rounded-2xl shadow-lg text-center">
             <CheckCircle className="w-12 h-12 text-green-600 mx-auto mb-3" />
             <h2 className="text-xl font-bold mb-2">Report Submitted</h2>
-            <p className="text-gray-600 mb-6">
+            <p className="text-black mb-6">
               We've received your report and will look into it shortly.
             </p>
             <button
@@ -79,7 +79,7 @@ export default function ReportPage() {
           <div className="bg-white p-6 rounded-2xl shadow-lg text-center">
             <AlertCircle className="w-12 h-12 text-yellow-500 mx-auto mb-3" />
             <h2 className="text-xl font-bold mb-2">Report Already Exists</h2>
-            <p className="text-gray-600 mb-6">
+            <p className="text-black mb-6">
               There's already an open report for your current rental. We'll resolve
               it before a new one can be submitted.
             </p>
@@ -97,7 +97,7 @@ export default function ReportPage() {
           <div className="bg-white p-6 rounded-2xl shadow-lg text-center">
             <XCircle className="w-12 h-12 text-red-500 mx-auto mb-3" />
             <h2 className="text-xl font-bold mb-2">Submission Failed</h2>
-            <p className="text-gray-600 mb-6">{errorMsg}</p>
+            <p className="text-black mb-6">{errorMsg}</p>
             <button
               onClick={handleReset}
               className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700"
@@ -114,17 +114,17 @@ export default function ReportPage() {
               <FileText className="w-5 h-5 mr-2 text-blue-600" />
               Report Details
             </h2>
-            <p className="text-gray-600 text-sm mb-4">
+            <p className="text-black text-sm mb-4">
               We'll look up your latest rental automatically using your email.
             </p>
 
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-black mb-1">
                   Email
                 </label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-black" />
                   <input
                     type="email"
                     value={email}
@@ -137,7 +137,7 @@ export default function ReportPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-black mb-1">
                   Description
                 </label>
                 <textarea
@@ -149,7 +149,7 @@ export default function ReportPage() {
                   maxLength={1000}
                   disabled={loading}
                 />
-                <div className="text-right text-xs text-gray-400 mt-1">
+                <div className="text-right text-xs text-black mt-1">
                   {body.trim().length < 10
                     ? `${10 - body.trim().length} more characters needed`
                     : `${body.length}/1000`}
