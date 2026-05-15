@@ -50,7 +50,7 @@ export default function AdminLoginPage() {
   return (
     <div className="min-h-screen bg-gray-50 p-4 flex items-center justify-center">
       <div className="max-w-md w-full">
-        <Link href="/" className="inline-flex items-center text-gray-600 mb-6">
+        <Link href="/" className="inline-flex items-center text-black mb-6">
           ← Back to Home
         </Link>
 
@@ -67,17 +67,17 @@ export default function AdminLoginPage() {
         )}
 
         <div className="bg-white p-6 rounded-2xl shadow-lg">
-          <h2 className="text-xl font-bold mb-4 flex items-center">
+          <h2 className="text-xl font-bold mb-4 flex items-center text-black">
             <Lock className="w-5 h-5 mr-2 text-purple-600" />
             Admin Login
           </h2>
-          <p className="text-gray-600 text-sm mb-4">
+          <p className="text-black text-sm mb-4">
             Enter admin credentials to access the dashboard.
           </p>
 
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-black mb-1">
                 Admin Email
               </label>
               <div className="relative">
@@ -85,7 +85,7 @@ export default function AdminLoginPage() {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full pl-4 pr-4 py-3 border rounded-xl bg-gray-50"
+                  className="w-full pl-4 pr-4 py-3 border rounded-xl bg-gray-50 text-black"
                   placeholder="admin@bikebayan.ph"
                   disabled={loading}
                 />
@@ -93,16 +93,16 @@ export default function AdminLoginPage() {
             </div>
             
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-black mb-1">
                 Password
               </label>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-black" />
                 <input
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 border rounded-xl"
+                  className="w-full pl-10 pr-4 py-3 border rounded-xl text-black"
                   placeholder="Enter password"
                   disabled={loading}
                 />
@@ -114,7 +114,7 @@ export default function AdminLoginPage() {
               disabled={loading || !email || !password}
               className={`w-full mt-6 py-3 rounded-xl font-bold ${
                 loading || !email || !password
-                  ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                  ? "bg-gray-300 text-black cursor-not-allowed"
                   : "bg-purple-600 text-white hover:bg-purple-700"
               }`}
             >
@@ -123,7 +123,7 @@ export default function AdminLoginPage() {
           </form>
 
           <div className="mt-4 text-center">
-            <Link href="/borrow" className="text-sm text-gray-600 hover:text-gray-800">
+            <Link href="/borrow" className="text-sm text-black hover:text-black">
               Not admin? Borrow a bike →
             </Link>
           </div>

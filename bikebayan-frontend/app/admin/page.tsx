@@ -188,7 +188,7 @@ export default function AdminDashboard() {
   if (!user) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <p className="text-gray-600">Checking admin access...</p>
+        <p className="text-black">Checking admin access...</p>
       </div>
     );
   }
@@ -199,8 +199,8 @@ export default function AdminDashboard() {
       <nav className="bg-white border-b sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Link href="/" className="text-gray-600 hover:text-blue-600">← Back to Home</Link>
-            <h1 className="text-xl font-bold text-gray-900">🔧 Admin Dashboard</h1>
+            <Link href="/" className="text-black hover:text-blue-600">← Back to Home</Link>
+            <h1 className="text-xl font-bold text-black">🔧 Admin Dashboard</h1>
           </div>
           <div className="flex items-center gap-4">
             <button
@@ -225,7 +225,7 @@ export default function AdminDashboard() {
         {/* Admin Banner */}
         <div className="bg-purple-50 border border-purple-200 rounded-xl p-4 mb-8">
           <p className="text-sm text-purple-800">
-            👋 Welcome, Admin • Signed in as <strong>{user.email}</strong>
+            👋 Welcome, Admin • Signed in as <strong className="text-black">{user.email}</strong>
           </p>
         </div>
 
@@ -235,8 +235,8 @@ export default function AdminDashboard() {
             <div className="flex items-center gap-3">
               <Bike className="w-6 h-6 text-blue-600" />
               <div>
-                <p className="text-2xl font-bold">{stations.reduce((acc, s) => acc + (s.available_slots || 0), 0)}</p>
-                <p className="text-xs text-gray-500">Docked Bikes</p>
+                <p className="text-2xl font-bold text-black">{stations.reduce((acc, s) => acc + (s.available_slots || 0), 0)}</p>
+                <p className="text-xs text-black">Docked Bikes</p>
               </div>
             </div>
           </div>
@@ -244,8 +244,8 @@ export default function AdminDashboard() {
             <div className="flex items-center gap-3">
               <Activity className="w-6 h-6 text-purple-600" />
               <div>
-                <p className="text-2xl font-bold">{activeRentals.length}</p>
-                <p className="text-xs text-gray-500">In Use</p>
+                <p className="text-2xl font-bold text-black">{activeRentals.length}</p>
+                <p className="text-xs text-black">In Use</p>
               </div>
             </div>
           </div>
@@ -253,8 +253,8 @@ export default function AdminDashboard() {
             <div className="flex items-center gap-3">
               <Users className="w-6 h-6 text-yellow-600" />
               <div>
-                <p className="text-2xl font-bold">{loadingFlaggedUsers ? "—" : flaggedUsers.length}</p>
-                <p className="text-xs text-gray-500">Flagged Users</p>
+                <p className="text-2xl font-bold text-black">{loadingFlaggedUsers ? "—" : flaggedUsers.length}</p>
+                <p className="text-xs text-black">Flagged Users</p>
               </div>
             </div>
           </div>
@@ -262,8 +262,8 @@ export default function AdminDashboard() {
             <div className="flex items-center gap-3">
               <AlertTriangle className="w-6 h-6 text-red-600" />
               <div>
-                <p className="text-2xl font-bold">{loadingReports ? "—" : pendingCount}</p>
-                <p className="text-xs text-gray-500">Pending Reports</p>
+                <p className="text-2xl font-bold text-black">{loadingReports ? "—" : pendingCount}</p>
+                <p className="text-xs text-black">Pending Reports</p>
               </div>
             </div>
           </div>
@@ -272,22 +272,22 @@ export default function AdminDashboard() {
         {/* 1. Station Status & Docked Bikes */}
         <div className="bg-white rounded-2xl shadow-sm border mb-8">
           <div className="p-6 border-b">
-            <h2 className="text-lg font-bold flex items-center gap-2">
+            <h2 className="text-lg font-bold flex items-center gap-2 text-black">
               <MapPin className="w-5 h-5 text-blue-600" />
               Station Status
             </h2>
           </div>
           <div className="p-6">
             {loadingStations ? (
-              <p className="text-gray-500">Loading stations...</p>
+              <p className="text-black">Loading stations...</p>
             ) : stations.length === 0 ? (
-              <p className="text-gray-500">No stations found.</p>
+              <p className="text-black">No stations found.</p>
             ) : (
               <div className="grid md:grid-cols-2 gap-4">
                 {stations.map(station => (
                   <div key={station.id} className="p-5 rounded-xl border bg-gray-50/50">
                     <div className="flex justify-between items-start mb-2">
-                      <h3 className="font-bold text-gray-900">{station.name}</h3>
+                      <h3 className="font-bold text-black">{station.name}</h3>
                       <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${
                         (station.available_slots || 0) > 0
                           ? "bg-green-100 text-green-700"
@@ -298,17 +298,17 @@ export default function AdminDashboard() {
                     </div>
 
                     <div className="mt-4 pt-4 border-t">
-                      <p className="text-xs text-gray-500 mb-2 font-medium uppercase tracking-wider">Currently Docked Bikes:</p>
+                      <p className="text-xs text-black mb-2 font-medium uppercase tracking-wider">Currently Docked Bikes:</p>
                       <div className="flex flex-wrap gap-2">
                         {station.docked_bikes && station.docked_bikes.length > 0 ? (
                           station.docked_bikes.map((bikeId: number) => (
-                            <span key={bikeId} className="px-2 py-1 bg-white shadow-sm text-gray-700 text-xs rounded-md border flex items-center gap-1.5">
+                            <span key={bikeId} className="px-2 py-1 bg-white shadow-sm text-black text-xs rounded-md border flex items-center gap-1.5">
                               <Bike className="w-3 h-3 text-blue-500"/>
                               Bike #{bikeId}
                             </span>
                           ))
                         ) : (
-                          <span className="text-xs text-gray-400 italic">Station is currently empty.</span>
+                          <span className="text-xs text-black italic">Station is currently empty.</span>
                         )}
                       </div>
                     </div>
@@ -322,25 +322,25 @@ export default function AdminDashboard() {
         {/* 2. Bikes Currently In Use */}
         <div className="bg-white rounded-2xl shadow-sm border mb-8">
           <div className="p-6 border-b">
-            <h2 className="text-lg font-bold flex items-center gap-2">
+            <h2 className="text-lg font-bold flex items-center gap-2 text-black">
               <Activity className="w-5 h-5 text-purple-600" />
               Bikes Currently In Use
             </h2>
           </div>
           <div className="p-6">
             {loadingActiveRentals ? (
-              <p className="text-gray-500">Loading active rentals...</p>
+              <p className="text-black">Loading active rentals...</p>
             ) : activeRentals.length === 0 ? (
               <div className="text-center py-6">
                 <Bike className="w-12 h-12 text-gray-300 mx-auto mb-2" />
-                <p className="text-gray-500 font-medium">No bikes are currently being ridden.</p>
+                <p className="text-black font-medium">No bikes are currently being ridden.</p>
               </div>
             ) : (
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {activeRentals.map(rental => (
                   <div key={rental.id} className="p-4 rounded-xl border border-purple-100 bg-purple-50/50">
                     <div className="flex justify-between items-start mb-3">
-                      <h3 className="font-bold text-purple-900 flex items-center gap-2">
+                      <h3 className="font-bold text-purple-900 flex items-center gap-2 text-black">
                         <Bike className="w-4 h-4" />
                         Bike #{rental.bike_id}
                       </h3>
@@ -351,10 +351,10 @@ export default function AdminDashboard() {
                     </div>
                     
                     <div className="bg-white p-3 rounded-lg border border-purple-100">
-                      <p className="text-sm text-gray-600 mb-1">
-                        <span className="font-medium text-gray-900">Rider UIN:</span> {rental.user_uin}
+                      <p className="text-sm text-black mb-1">
+                        <span className="font-medium text-black">Rider UIN:</span> {rental.user_uin}
                       </p>
-                      <p className="text-xs text-gray-500">
+                      <p className="text-xs text-black">
                         <Clock className="w-3 h-3 inline mr-1" />
                         Started: {new Date(rental.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </p>
@@ -369,18 +369,18 @@ export default function AdminDashboard() {
         {/* 3. NEW: Flagged Users */}
         <div className="bg-white rounded-2xl shadow-sm border mb-8">
           <div className="p-6 border-b">
-            <h2 className="text-lg font-bold flex items-center gap-2">
+            <h2 className="text-lg font-bold flex items-center gap-2 text-black">
               <Users className="w-5 h-5 text-yellow-600" />
               Flagged Users (Late Returns)
             </h2>
           </div>
           <div className="p-6">
             {loadingFlaggedUsers ? (
-              <p className="text-gray-500">Loading flagged users...</p>
+              <p className="text-black">Loading flagged users...</p>
             ) : flaggedUsers.length === 0 ? (
               <div className="text-center py-6">
                 <CheckCircle className="w-12 h-12 text-green-300 mx-auto mb-2" />
-                <p className="text-gray-500 font-medium">All good! No flagged users right now.</p>
+                <p className="text-black font-medium">All good! No flagged users right now.</p>
               </div>
             ) : (
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -388,7 +388,7 @@ export default function AdminDashboard() {
                   <div key={flaggedUser.uin} className="p-4 rounded-xl border border-yellow-200 bg-yellow-50/50 flex flex-col justify-between">
                     <div>
                       <div className="flex justify-between items-start mb-3">
-                        <h3 className="font-bold text-yellow-900 flex items-center gap-2">
+                        <h3 className="font-bold text-yellow-900 flex items-center gap-2 text-black">
                           <Users className="w-4 h-4" />
                           UIN: {flaggedUser.uin}
                         </h3>
@@ -396,7 +396,7 @@ export default function AdminDashboard() {
                           Flagged
                         </span>
                       </div>
-                      <p className="text-sm text-gray-600 mb-4">
+                      <p className="text-sm text-black mb-4">
                         This user exceeded the 3-hour limit and is currently locked out of the system.
                       </p>
                     </div>
@@ -418,11 +418,11 @@ export default function AdminDashboard() {
         {/* 4. Reports Section */}
         <div className="bg-white rounded-2xl shadow-sm border">
           <div className="p-6 border-b flex items-center justify-between">
-            <h2 className="text-lg font-bold flex items-center gap-2">
+            <h2 className="text-lg font-bold flex items-center gap-2 text-black">
               <Flag className="w-5 h-5 text-red-500" />
               Reports
               {!loadingReports && (
-                <span className="ml-2 text-sm font-normal text-gray-500">
+                <span className="ml-2 text-sm font-normal text-black">
                   {pendingCount} open · {reports.length - pendingCount} resolved
                 </span>
               )}
@@ -431,9 +431,9 @@ export default function AdminDashboard() {
 
           <div className="divide-y">
             {loadingReports ? (
-              <p className="p-6 text-gray-500">Loading reports...</p>
+              <p className="p-6 text-black">Loading reports...</p>
             ) : reports.length === 0 ? (
-              <p className="p-6 text-gray-500">No reports yet.</p>
+              <p className="p-6 text-black">No reports yet.</p>
             ) : (
               reports.map(report => {
                 const isExpanded = expandedReport === report.id;
@@ -453,7 +453,7 @@ export default function AdminDashboard() {
                         </span>
                         <div className="min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <span className="font-medium text-sm">{report.email || `Rental #${report.rental_id}`}</span>
+                            <span className="font-medium text-sm text-black">{report.email || `Rental #${report.rental_id}`}</span>
                             <span className={`text-xs px-2 py-0.5 rounded-full ${
                               report.resolved
                                 ? "bg-green-100 text-green-700"
@@ -461,13 +461,13 @@ export default function AdminDashboard() {
                             }`}>
                               {report.resolved ? "Resolved" : "Open"}
                             </span>
-                            <span className="text-xs text-gray-400">
+                            <span className="text-xs text-black">
                               Rental #${report.rental_id}
                             </span>
                           </div>
-                          <p className="text-sm text-gray-500 truncate mt-0.5">{report.body}</p>
+                          <p className="text-sm text-black truncate mt-0.5">{report.body}</p>
                         </div>
-                        <span className="shrink-0 text-gray-400 mt-0.5">
+                        <span className="shrink-0 text-black mt-0.5">
                           {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                         </span>
                       </button>
@@ -476,7 +476,7 @@ export default function AdminDashboard() {
                         {!isEditing && (
                           <button
                             onClick={() => startEdit(report)}
-                            className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                            className="p-1.5 text-black hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                             title="Edit"
                           >
                             <Pencil className="w-4 h-4" />
@@ -485,7 +485,7 @@ export default function AdminDashboard() {
                         <button
                           onClick={() => handleDelete(report.id)}
                           disabled={deleting === report.id}
-                          className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
+                          className="p-1.5 text-black hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
                           title="Delete"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -496,7 +496,7 @@ export default function AdminDashboard() {
                     {isExpanded && (
                       <div className="mt-4 ml-8 space-y-3">
                         {report.created_at && (
-                          <p className="text-xs text-gray-400">
+                          <p className="text-xs text-black">
                             Submitted {new Date(report.created_at).toLocaleString()}
                           </p>
                         )}
@@ -504,12 +504,12 @@ export default function AdminDashboard() {
                         {isEditing ? (
                           <>
                             <div>
-                              <label className="block text-xs font-medium text-gray-600 mb-1">Description</label>
+                              <label className="block text-xs font-medium text-black mb-1">Description</label>
                               <textarea
                                 value={editState.body}
                                 onChange={e => setEditState(s => ({ ...s, body: e.target.value }))}
                                 rows={4}
-                                className="w-full px-3 py-2 border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                                className="w-full px-3 py-2 border rounded-xl text-sm text-black focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
                               />
                             </div>
 
@@ -521,7 +521,7 @@ export default function AdminDashboard() {
                                 onChange={e => setEditState(s => ({ ...s, resolved: e.target.checked }))}
                                 className="w-4 h-4 accent-green-600"
                               />
-                              <label htmlFor={`resolved-${report.id}`} className="text-sm text-gray-700">
+                              <label htmlFor={`resolved-${report.id}`} className="text-sm text-black">
                                 Mark as resolved
                               </label>
                             </div>
@@ -542,7 +542,7 @@ export default function AdminDashboard() {
                               <button
                                 onClick={cancelEdit}
                                 disabled={saving}
-                                className="flex items-center gap-1.5 px-4 py-2 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-200 disabled:opacity-50 transition-colors"
+                                className="flex items-center gap-1.5 px-4 py-2 bg-gray-100 text-black text-sm font-medium rounded-lg hover:bg-gray-200 disabled:opacity-50 transition-colors"
                               >
                                 <X className="w-3.5 h-3.5" />
                                 Cancel
@@ -550,7 +550,7 @@ export default function AdminDashboard() {
                             </div>
                           </>
                         ) : (
-                          <p className="text-sm text-gray-700 bg-gray-50 rounded-xl p-3 whitespace-pre-wrap">
+                          <p className="text-sm text-black bg-gray-50 rounded-xl p-3 whitespace-pre-wrap">
                             {report.body}
                           </p>
                         )}
