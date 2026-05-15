@@ -69,9 +69,9 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:3000",
         "http://47.129.208.70:3000",
-        "http://bikebayan.duckdns.org:3000",  
-        "http://*.duckdns.org:3000",          #
-    ],, # Allows any frontend to connect
+        "http://bikebayan.duckdns.org:3000",
+        "http://*.duckdns.org:3000",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
