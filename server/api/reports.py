@@ -101,7 +101,7 @@ async def submit_report(req: SubmitReport):
             .insert({
                 "rental_id": rental_id,
                 "body": req.body,
-                "status": "open",
+                "resolved": False,
             })
             .execute()
         )
