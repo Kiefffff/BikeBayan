@@ -21,7 +21,6 @@ class SubmitReport(BaseModel):
 
 class UpdateReport(BaseModel):
     rental_id: int
-    email: str
     body: str
     resolved: bool
 
@@ -123,7 +122,6 @@ async def update_report(report_id: int, req: UpdateReport):
             .update({
                 "rental_id": req.rental_id,
                 "body": req.body,
-                "email": req.email,
                 "resolved": req.resolved,
             })
             .eq("id", report_id)

@@ -138,7 +138,7 @@ export default function AdminDashboard() {
 
   const startEdit = (report: Report) => {
     setEditingReport(report.id);
-    setEditState({ body: report.body, resolved: report.resolved });
+    setEditState({ body: report.body, resolved: report.resolved ?? false });
     setExpandedReport(report.id);
     setSaveError("");
   };
@@ -163,7 +163,15 @@ export default function AdminDashboard() {
       );
       setEditingReport(null);
     } catch (err: any) {
-      setSaveError(err.response?.data?.detail || "Failed to save changes.");
+      // The detail field might be an object (e.g. Pydantic validation error array)
+      const detail = err.response?.data?.detail;
+      if (typeof detail === "string") {
+        setSaveError(detail);
+      } else if (Array.isArray(detail)) {
+        setSaveError(detail.map((d: any) => d.msg).join(", "));
+      } else {
+        setSaveError("Failed to save changes.");
+      }
     } finally {
       setSaving(false);
     }
