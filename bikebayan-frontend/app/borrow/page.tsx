@@ -1,49 +1,63 @@
 "use client";
-import { useState } from "react";
-import { submitReport } from "@/lib/api";
-import { Mail, FileText, Send, CheckCircle, AlertCircle, XCircle } from "lucide-react";
+import { useState, useEffect } from "react";
+import { verifyOTP } from "@/lib/api";
+import { Mail, Lock, CheckCircle, AlertCircle, Bike } from "lucide-react";
 import Link from "next/link";
 
-export default function ReportPage() {
+export default function BorrowPage() {
+  const [step, setStep] = useState<"verify" | "success">("verify");
   const [email, setEmail] = useState("");
-  const [body, setBody] = useState("");
+  const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<"success" | "duplicate" | "error" | null>(null);
-  const [errorMsg, setErrorMsg] = useState("");
+  const [error, setError] = useState("");
 
-  const canSubmit =
-    email.includes("@") && body.trim().length >= 10 && !loading;
+  useEffect(() => {
+    const stored = localStorage.getItem("user");
+    if (stored) {
+      try {
+        const user = JSON.parse(stored);
+        if (user.email && user.verified_at && user.email !== "admin@bikebayan.ph") {
+          setStep("success");
+          setEmail(user.email);
+        }
+      } catch {}
+    }
+  }, []);
 
-  const handleSubmit = async () => {
+  const handleVerify = async () => {
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanOtp = otp.replace(/\D/g, "");
+
+    if (!cleanEmail.includes("@") || cleanOtp.length !== 6) {
+      setError("Enter a valid email and 6-digit OTP");
+      return;
+    }
+
     setLoading(true);
-    setResult(null);
-    setErrorMsg("");
+    setError("");
 
     try {
-      await submitReport(email.trim().toLowerCase(), body.trim());
-      setResult("success");
-    } catch (err: any) {
-      const status = err.response?.status;
-      const detail = err.response?.data?.detail;
-      if (status === 409) {
-        setResult("duplicate");
-      } else if (status === 404) {
-        setResult("error");
-        setErrorMsg(detail || "User or rental not found.");
+      const result = await verifyOTP(cleanEmail, cleanOtp);
+      
+      if (result.success) {
+        localStorage.setItem("user", JSON.stringify({
+          email: cleanEmail,
+          uin: result.uin || "verified",
+          verified_at: new Date().toISOString()
+        }));
+        setStep("success");
       } else {
-        setResult("error");
-        setErrorMsg(detail || "Could not submit report. Please try again.");
+        setError("Verification failed");
       }
+    } catch (err: any) {
+      setError(err.response?.data?.detail || "Invalid email or OTP");
+      setOtp("");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleReset = () => {
-    setResult(null);
-    setErrorMsg("");
-    setBody("");
-  };
+  const canSubmit = email.includes("@") && otp.length === 6 && !loading;
 
   return (
     <div className="min-h-screen bg-gray-50 p-4 flex items-center justify-center">
@@ -52,122 +66,94 @@ export default function ReportPage() {
           ← Back to Home
         </Link>
 
-        <h1 className="text-3xl font-bold text-center mb-2 text-black">🚲 Report an Issue</h1>
-        <p className="text-black text-center mb-8">
-          Let us know about a problem with your rental
-        </p>
+        <h1 className="text-3xl font-bold text-center mb-2 text-black">🚲 Borrow a Bike</h1>
+        <p className="text-black text-center mb-8">Enter your email and OTP</p>
 
-        {/* Success */}
-        {result === "success" && (
-          <div className="bg-white p-6 rounded-2xl shadow-lg text-center">
-            <CheckCircle className="w-12 h-12 text-green-600 mx-auto mb-3" />
-            <h2 className="text-xl font-bold mb-2 text-black">Report Submitted</h2>
-            <p className="text-black mb-6">
-              We've received your report and will look into it shortly.
-            </p>
-            <button
-              onClick={handleReset}
-              className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700"
-            >
-              Submit Another Report
-            </button>
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-6">
+            <AlertCircle className="w-5 h-5 inline mr-2" />
+            {error}
           </div>
         )}
 
-        {/* Duplicate */}
-        {result === "duplicate" && (
-          <div className="bg-white p-6 rounded-2xl shadow-lg text-center">
-            <AlertCircle className="w-12 h-12 text-yellow-500 mx-auto mb-3" />
-            <h2 className="text-xl font-bold mb-2 text-black">Report Already Exists</h2>
-            <p className="text-black mb-6">
-              There's already an open report for your current rental. We'll resolve
-              it before a new one can be submitted.
-            </p>
-            <button
-              onClick={handleReset}
-              className="w-full bg-gray-200 text-black py-3 rounded-xl font-bold hover:bg-gray-300"
-            >
-              Go Back
-            </button>
-          </div>
-        )}
-
-        {/* Error */}
-        {result === "error" && (
-          <div className="bg-white p-6 rounded-2xl shadow-lg text-center">
-            <XCircle className="w-12 h-12 text-red-500 mx-auto mb-3" />
-            <h2 className="text-xl font-bold mb-2 text-black">Submission Failed</h2>
-            <p className="text-black mb-6">{errorMsg}</p>
-            <button
-              onClick={handleReset}
-              className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700"
-            >
-              Try Again
-            </button>
-          </div>
-        )}
-
-        {/* Form */}
-        {result === null && (
+        {step === "verify" && (
           <div className="bg-white p-6 rounded-2xl shadow-lg">
             <h2 className="text-xl font-bold mb-4 flex items-center text-black">
-              <FileText className="w-5 h-5 mr-2 text-blue-600" />
-              Report Details
+              <Lock className="w-5 h-5 mr-2 text-blue-600" />
+              Verify Identity
             </h2>
             <p className="text-black text-sm mb-4">
-              We'll look up your latest rental automatically using your email.
+              After scanning your National ID, enter the email and 6-digit OTP you received.
             </p>
 
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-black mb-1">
-                  Email
-                </label>
+                <label className="block text-sm font-medium text-black mb-1">Email</label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-black" />
                   <input
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full pl-10 pr-4 py-3 border rounded-xl"
                     placeholder="your@email.com"
                     disabled={loading}
                   />
                 </div>
               </div>
-
+              
               <div>
-                <label className="block text-sm font-medium text-black mb-1">
-                  Description
-                </label>
-                <textarea
-                  value={body}
-                  onChange={(e) => setBody(e.target.value)}
-                  className="w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-                  placeholder="Describe the issue with your bike or rental..."
-                  rows={5}
-                  maxLength={1000}
-                  disabled={loading}
-                />
-                <div className="text-right text-xs text-black mt-1">
-                  {body.trim().length < 10
-                    ? `${10 - body.trim().length} more characters needed`
-                    : `${body.length}/1000`}
+                <label className="block text-sm font-medium text-black mb-1">OTP (6 digits)</label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-black" />
+                  <input
+                    type="text"
+                    value={otp}
+                    onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                    className="w-full pl-10 pr-4 py-3 border rounded-xl text-center text-2xl tracking-widest font-mono"
+                    placeholder="••••••"
+                    maxLength={6}
+                    disabled={loading}
+                  />
                 </div>
               </div>
             </div>
 
             <button
-              onClick={handleSubmit}
+              onClick={handleVerify}
               disabled={!canSubmit}
-              className={`w-full mt-6 py-3 rounded-xl font-bold flex items-center justify-center gap-2 ${
-                canSubmit
-                  ? "bg-blue-600 text-white hover:bg-blue-700"
+              className={`w-full mt-6 py-3 rounded-xl font-bold ${
+                canSubmit 
+                  ? "bg-blue-600 text-white hover:bg-blue-700" 
                   : "bg-gray-300 text-gray-500 cursor-not-allowed"
               }`}
             >
-              <Send className="w-4 h-4" />
-              {loading ? "Submitting..." : "Submit Report"}
+              {loading ? "Verifying..." : "Verify & Borrow"}
+            </button>
+          </div>
+        )}
+
+        {step === "success" && (
+          <div className="bg-white p-6 rounded-2xl shadow-lg text-center">
+            <CheckCircle className="w-12 h-12 text-green-600 mx-auto mb-3" />
+            <h2 className="text-xl font-bold mb-2 text-black">Verified!</h2>
+            <p className="text-black mb-4">Select a bike at the station to unlock.</p>
+            <Link 
+              href={`/borrow/select-bike?email=${encodeURIComponent(email)}`}
+              className="block w-full bg-green-600 text-white py-3 rounded-xl font-bold hover:bg-green-700 flex items-center justify-center gap-2"
+            >
+              <Bike className="w-5 h-5" />
+              Select a Bike
+            </Link>
+            <button
+              onClick={() => {
+                setStep("verify");
+                setOtp("");
+                setError("");
+              }}
+              className="w-full mt-3 text-black py-2 text-sm hover:text-black"
+            >
+              Verify Another Email
             </button>
           </div>
         )}
