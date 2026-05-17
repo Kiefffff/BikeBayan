@@ -21,6 +21,7 @@
  * RST/Reset   RST          9             5         D9         RESET/ICSP-5     RST
  * SPI SS 1    SDA(SS)      ** custom, take a unused pin, only HIGH/LOW required **
  * SPI SS 2    SDA(SS)      ** custom, take a unused pin, only HIGH/LOW required **
+
  * SPI MOSI    MOSI         11 / ICSP-4   51        D11        ICSP-4           16
  * SPI MISO    MISO         12 / ICSP-1   50        D12        ICSP-1           14
  * SPI SCK     SCK          13 / ICSP-3   52        D13        ICSP-3           15
@@ -33,12 +34,12 @@
 #include <MFRC522.h>
 
 #define RST_PIN         14          // Configurable, see typical pin layout above
-#define SS_1_PIN        12         // Configurable, take a unused pin, only HIGH/LOW required, must be different to SS 2
-#define SS_2_PIN        13         // Configurable, take a unused pin, only HIGH/LOW required, must be different to SS 1
+#define SS_1_PIN        13         // Configurable, take a unused pin, only HIGH/LOW required, must be different to SS 2
+#define SS_2_PIN        25         // Configurable, take a unused pin, only HIGH/LOW required, must be different to SS 1
 
-#define NR_OF_READERS   1
+#define NR_OF_READERS   2
 
-byte ssPins[] = {SS_1_PIN};
+byte ssPins[] = {SS_1_PIN, SS_2_PIN};
 
 MFRC522 mfrc522[NR_OF_READERS];   // Create MFRC522 instance.
 
@@ -54,6 +55,9 @@ void setup() {
 
   for (uint8_t reader = 0; reader < NR_OF_READERS; reader++) {
     mfrc522[reader].PCD_Init(ssPins[reader], RST_PIN); // Init each MFRC522 card
+    delay(100);
+    mfrc522[reader].PCD_SetAntennaGain(mfrc522[reader].RxGain_max);
+
     Serial.print(F("Reader "));
     Serial.print(reader);
     Serial.print(F(": "));
@@ -64,13 +68,16 @@ void setup() {
 /**
  * Main loop.
  */
+int scan = 0;
 void loop() {
-
+  
   for (uint8_t reader = 0; reader < NR_OF_READERS; reader++) {
     // Look for new cards
 
     if (mfrc522[reader].PICC_IsNewCardPresent() && mfrc522[reader].PICC_ReadCardSerial()) {
-      Serial.print(F("Reader "));
+      scan++;
+      Serial.print("Scan: " + String(scan));
+      Serial.print(F(" Reader "));
       Serial.print(reader);
       // Show some details of the PICC (that is: the tag/card)
       Serial.print(F(": Card UID:"));
