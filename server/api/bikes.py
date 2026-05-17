@@ -53,10 +53,11 @@ async def station_update(req: EspStationUpdateRequest):
                 "id", slot_id
             ).execute()
 
-        return PlainTextResponse("1")
+        return PlainTextResponse("1", status_code=200)
     except Exception as e:
         logger.error(f"Station Update failed: {e}")
-        return PlainTextResponse("-1")
+        return PlainTextResponse("-1", status_code=500)
+
 
 # good
 @router.post("/user-status")
@@ -67,21 +68,21 @@ async def user_status_check(req: EspUserStatusRequest):
         ).execute()
 
         if not user_check.data:
-            return PlainTextResponse("-1")
+            return PlainTextResponse("-1", status_code=404)
 
         status = user_check.data[0].get("status")
 
         if status == "Cleared":
-            return PlainTextResponse("Cleared")
+            return PlainTextResponse("Cleared", status_code=200)
         elif status == "Borrowing":
-            return PlainTextResponse("Borrowing")
+            return PlainTextResponse("Borrowing", status_code=200)
         elif status == "Flagged":
-            return PlainTextResponse("Flagged")
+            return PlainTextResponse("Flagged", status_code=200)
         else:
-            return PlainTextResponse("-1")
+            return PlainTextResponse("-1", status_code=400)
     except Exception as e:
         logger.error(f"User Status Check failed: {e}")
-        return PlainTextResponse("-1")
+        return PlainTextResponse("-1", status_code=500)
 
 
 @router.post("/set-borrowing")
@@ -103,10 +104,11 @@ async def set_user_borrowing(req: EspBorrowRequest):
         }
         supabase.table("rental").insert(rental_data).execute()
 
-        return PlainTextResponse("1")
+        return PlainTextResponse("1", status_code=201)
     except Exception as e:
         logger.error(f"Set Borrowing failed: {e}")
-        return PlainTextResponse("-1")
+        return PlainTextResponse("-1", status_code=500)
+
 
 # good
 @router.post("/user-bike-check")
@@ -117,12 +119,12 @@ async def user_bike_check(req: EspUserBikeCheckRequest):
         ).is_("end_time", None).execute()
 
         if not active_rental.data:
-            return PlainTextResponse("-1")
+            return PlainTextResponse("-1", status_code=404)
 
-        return PlainTextResponse(str(active_rental.data[0]['bike_id']))
+        return PlainTextResponse(str(active_rental.data[0]['bike_id']), status_code=200)
     except Exception as e:
         logger.error(f"User Bike Check failed: {e}")
-        return PlainTextResponse("-1")
+        return PlainTextResponse("-1", status_code=500)
 
 
 @router.post("/set-returned")
@@ -133,7 +135,7 @@ async def set_user_returned(req: EspReturnedRequest):
         ).is_("end_time", None).execute()
 
         if not active_rental.data:
-            return PlainTextResponse("-1")
+            return PlainTextResponse("-1", status_code=404)
 
         rental_id = active_rental.data[0]['id']
         bike_id = active_rental.data[0]['bike_id']
@@ -146,12 +148,12 @@ async def set_user_returned(req: EspReturnedRequest):
         supabase.table("bikes").update({"status": "available"}).eq(
             "id", bike_id
         ).execute()
-        
+
         supabase.table("user").update({"status": "Cleared"}).eq(
             "uin", req.uin
         ).execute()
 
-        return PlainTextResponse("1")
+        return PlainTextResponse("1", status_code=200)
     except Exception as e:
         logger.error(f"Set Cleared failed: {e}")
-        return PlainTextResponse("-1")
+        return PlainTextResponse("-1", status_code=500)
