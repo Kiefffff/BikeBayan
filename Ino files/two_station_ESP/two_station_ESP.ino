@@ -361,6 +361,15 @@ String unlock(int slot) { // returns RFID of bike in slot
   if (rfid == "0"){
     return "0";
   }
+  for (int i = 3; i > 0; i--) {
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print("Unlocking in " + String(i) + "...");
+    delay(1000);
+  }
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("Unlocking!");
   if (slot == 1){
     while(1){
       digitalWrite(UNLOCK_1, LOW);
@@ -468,6 +477,7 @@ String dump_byte_array(byte *buffer, byte bufferSize) { // helper routine for rf
 String rfidScan(int rfid_slot) { // rfid slot can be 1 or 2 for this station, returns UID
   
   int sensor = rfid_slot - 1;
+  int otherSensor = 1 - sensor;
   // Show LCD msg
   lcd.clear();
   lcd.setCursor(0, 0); 
@@ -475,18 +485,56 @@ String rfidScan(int rfid_slot) { // rfid slot can be 1 or 2 for this station, re
   Serial.println("RFID scan: " + String(rfid_slot));
   delay(100);
   String readRFID ="";
-  //for(int i = 0; i < 2; i++){
-  // Initiate sensor
+
+  // Antenna management
+  mfrc522[otherSensor].PCD_Init(ssPins[otherSensor], resetPin);
+  delay(50);
+  mfrc522[otherSensor].PCD_AntennaOff();
+
+  digitalWrite(ssPins[0], HIGH);
+  digitalWrite(ssPins[1], HIGH);
+  delay(10);
+
   mfrc522[sensor].PCD_Init(ssPins[sensor], resetPin);
   delay(100);
   mfrc522[sensor].PCD_SetAntennaGain(mfrc522[sensor].RxGain_max);
-  delay(50);
   // Initiate evaluation
   
-  bool isNewCard = mfrc522[sensor].PICC_IsNewCardPresent();
-  bool readSerial = mfrc522[sensor].PICC_ReadCardSerial();
-  bool isLocked = lockCheck(rfid_slot);
+  // Retry WUPA multiple times to handle coldstart cards
+  bool readSerial = false;
+  for (int attempt = 0; attempt < 5; attempt++) {
+    delay(200); // let card harvest more energy each attempt
 
+    byte bufferATQA[2];
+    byte bufferSize = sizeof(bufferATQA);
+    MFRC522::StatusCode wakeResult = mfrc522[sensor].PICC_WakeupA(bufferATQA, &bufferSize);
+
+    Serial.println("Read attempt " + String(attempt) + ": " + String(wakeResult));
+
+    if (wakeResult == MFRC522::STATUS_OK || wakeResult == MFRC522::STATUS_COLLISION) {
+      readSerial = mfrc522[sensor].PICC_ReadCardSerial();
+      if (readSerial) {
+        Serial.println("Card found on attempt " + String(attempt));
+        break; // success, stop retrying
+      }
+    }
+
+    // Reset card state before next attempt
+    mfrc522[sensor].PICC_HaltA();
+    delay(50);
+  }
+
+  if (!readSerial) {
+  Serial.println("WUPA failed, trying IsNewCardPresent...");
+  if (mfrc522[sensor].PICC_IsNewCardPresent()) {
+    readSerial = mfrc522[sensor].PICC_ReadCardSerial();
+    if (readSerial) {
+      Serial.println("Card found via IsNewCardPresent");
+    }
+  }
+}
+
+  bool isLocked = lockCheck(rfid_slot);
   Serial.println(String(readSerial) + String(isLocked));
   lcd.clear();
   lcd.print(String(readSerial) + String(isLocked));
@@ -537,6 +585,8 @@ int lockCheck(int lock_slot) { // lock slot can be 1 or 2 for this station, retu
 }
 
 int stationUpdate() { // update station, scans both rfid scanners
+  delay(500);
+
   String rfid_uid_1 = rfidScan(1);
   String rfid_uid_2 = rfidScan(2);
 
@@ -621,7 +671,7 @@ String userVerify(String uin, String dob, String name) {
     Serial.printf("http %d, response: %s\n", httpCode, response.c_str());
 
     response.trim(); 
-    if (response.equalsIgnoreCase("\"Success\"")) { 
+    if (response.equalsIgnoreCase("Success")) { 
       Serial.println(response);
       lcd.clear();
       lcd.setCursor(0, 0); 

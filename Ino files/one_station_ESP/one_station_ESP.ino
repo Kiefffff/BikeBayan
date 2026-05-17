@@ -73,9 +73,9 @@ void setup() {
 
   // intitate SPI bus
   pinMode(RFID_SS_1, OUTPUT);
-  pinMode(RFID_SS_2, OUTPUT);
+  //pinMode(RFID_SS_2, OUTPUT);
   digitalWrite(RFID_SS_1, HIGH);  // deselect both before SPI starts
-  digitalWrite(RFID_SS_2, HIGH);
+  //digitalWrite(RFID_SS_2, HIGH);
   SPI.begin();
 
   for (uint8_t reader = 0; reader < numReaders; reader++) {
@@ -331,6 +331,15 @@ String unlock(int slot) { // sends unlock signal, returns RFID of bike in slot.
   if (rfid == "0"){
     return "0";
   }
+  for (int i = 3; i > 0; i--) {
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print("Unlocking in " + String(i) + "...");
+    delay(1000);
+  }
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("Unlocking!");
   if (slot == 1){
     while(1){
       digitalWrite(UNLOCK_1, HIGH);
@@ -412,17 +421,39 @@ String rfidScan(int rfid_slot) { // rfid slot can be 1 or 2 for this station, re
   lcd.print("RFID scan: " + String(rfid_slot)); // 12 chars
   Serial.println("RFID scan: " + String(rfid_slot));
   delay(100);
-  String readRFID ="";
+  String readRFID ="0";
   //for(int i = 0; i < 2; i++){
   // Initiate sensor
   mfrc522[sensor].PCD_Init(ssPins[sensor], resetPin);
-  delay(100);
+  delay(500);
   mfrc522[sensor].PCD_SetAntennaGain(mfrc522[sensor].RxGain_max);
   delay(50);
   // Initiate evaluation
   
-  bool isNewCard = mfrc522[sensor].PICC_IsNewCardPresent();
-  bool readSerial = mfrc522[sensor].PICC_ReadCardSerial();
+  // Retry WUPA multiple times to handle coldstart cards
+  bool readSerial = false;
+  for (int attempt = 0; attempt < 5; attempt++) {
+    delay(200); // let card harvest more energy each attempt
+
+    byte bufferATQA[2];
+    byte bufferSize = sizeof(bufferATQA);
+    MFRC522::StatusCode wakeResult = mfrc522[sensor].PICC_WakeupA(bufferATQA, &bufferSize);
+
+    Serial.println("Read attempt " + String(attempt) + ": " + String(wakeResult));
+
+    if (wakeResult == MFRC522::STATUS_OK || wakeResult == MFRC522::STATUS_COLLISION) {
+      readSerial = mfrc522[sensor].PICC_ReadCardSerial();
+      if (readSerial) {
+        Serial.println("Card found on attempt " + String(attempt));
+        break; // success, stop retrying
+      }
+    }
+
+    // Reset card state before next attempt
+    mfrc522[sensor].PICC_HaltA();
+    delay(50);
+  }
+
   bool isLocked = lockCheck(rfid_slot);
 
   Serial.println(String(readSerial) + String(isLocked));
@@ -433,8 +464,16 @@ String rfidScan(int rfid_slot) { // rfid slot can be 1 or 2 for this station, re
   if(readSerial && isLocked){
     readRFID = dump_byte_array(mfrc522[sensor].uid.uidByte, mfrc522[sensor].uid.size);
     Serial.println("TRUE RFID read: " + String(readRFID));
+    lcd.clear();
+    lcd.setCursor(0, 0); 
+    lcd.print(dump_byte_array(mfrc522[sensor].uid.uidByte, mfrc522[sensor].uid.size));
+    delay(500);
   } else {
     readRFID = "0";
+    lcd.clear();
+    lcd.setCursor(0, 0); 
+    lcd.print(dump_byte_array(mfrc522[sensor].uid.uidByte, mfrc522[sensor].uid.size));
+    delay(500);
     Serial.println(dump_byte_array(mfrc522[sensor].uid.uidByte, mfrc522[sensor].uid.size));
   }
   mfrc522[sensor].PICC_HaltA();
@@ -475,6 +514,7 @@ int lockCheck(int lock_slot) { // lock slot can be 1 for this station, returns 1
 }
 
 int stationUpdate() { // update station, scans both rfid scanners
+delay(500);
   String rfid_uid_1 = rfidScan(1);
   // String rfid_uid_2 = rfidScan(2);
 
@@ -559,7 +599,7 @@ String userVerify(String uin, String dob, String name) { // MOSIP
     Serial.printf("http %d, response: %s\n", httpCode, response.c_str());
 
     response.trim(); 
-    if (response.equalsIgnoreCase("\"Success\"")) { 
+    if (response.equalsIgnoreCase("Success")) { 
       Serial.println(response);
       lcd.clear();
       lcd.setCursor(0, 0); 
