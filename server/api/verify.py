@@ -2,13 +2,14 @@ import os
 import logging
 import asyncio
 from fastapi import APIRouter, HTTPException
+from fastapi.responses import PlainTextResponse
 from pydantic import BaseModel
 from mosip_auth_sdk.models import DemographicsModel
 from mosip_auth_sdk import MOSIPAuthenticator
 from dynaconf import Dynaconf
 from supabase import create_client, Client
 from dotenv import load_dotenv
-from fastapi.responses import PlainTextResponse
+
 router = APIRouter(prefix="", tags=["default"])
 
 load_dotenv()
@@ -39,9 +40,13 @@ async def verify_scan(req: VerifyRequest):
         )
     except asyncio.TimeoutError:
         logging.error("MOSIP API or Database took too long to respond.")
-        return PlainTextResponse("-1")
-    except HTTPException:
-        return PlainTextResponse("-1")
+        return PlainTextResponse("-1", status_code=504)
+    except HTTPException as e:
+        return PlainTextResponse("-1", status_code=e.status_code)
+    except Exception as e:
+        logging.error(f"Unexpected error during verify scan: {e}")
+        return PlainTextResponse("-1", status_code=500)
+
 
 def process_verification(req: VerifyRequest):
     try:
@@ -64,6 +69,10 @@ def process_verification(req: VerifyRequest):
             demographic_data=demographics_data,
             consent=True,
         )
+
+        if not response.ok:
+            logging.error(f"KYC request failed with HTTP {response.status_code}")
+            raise HTTPException(status_code=502, detail="KYC server returned an error")
 
         kyc_response_body = response.json()
 
@@ -109,7 +118,7 @@ def process_verification(req: VerifyRequest):
             }).eq("uin", uin).execute()
             logging.info(f"Updated user for UIN={uin} with email={extracted_email}")
 
-        return("Success")
+        return PlainTextResponse("Success", status_code=200)
 
     except HTTPException:
         raise

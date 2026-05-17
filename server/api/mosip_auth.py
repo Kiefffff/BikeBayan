@@ -74,22 +74,27 @@ async def generate_otp(req: OTPRequest):
             asyncio.to_thread(_process_generate_otp, req),
             timeout=30.0  # 30 seconds timeout
         )
-        
+
+        if data.get("errors"):
+            logger.error(f"OTP generation failed: {data['errors']}")
+            return PlainTextResponse("-1", status_code=502)
+
         # Store transaction ID
         otp_transactions[req.uin] = data["transactionID"]
         esp_auth_status[req.uin] = False
         
         logger.info(f"OTP generated for UIN={req.uin}")
-        return PlainTextResponse("success")
+        return PlainTextResponse("success", status_code=200)
         
     except asyncio.TimeoutError:
         logger.error(f"OTP generation timed out for UIN={req.uin}")
-        return PlainTextResponse("-1")  # ESP-friendly error
+        return PlainTextResponse("-1", status_code=504)
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"OTP generation failed: {e}")
-        return PlainTextResponse("-1")
+        return PlainTextResponse("-1", status_code=500)
+
 
 @router.post("/verify-otp")
 async def verify_otp(req: VerifyRequest):
@@ -148,18 +153,19 @@ async def check_auth_status(req: OTPRequest):
     try:
         user = supabase.table("user").select("uin").eq("uin", req.uin).execute()
         if not user.data:
-            raise HTTPException(status_code=400, detail="Invalid UIN")
+            return PlainTextResponse("-1", status_code=404)
 
         uin = req.uin
         if uin not in esp_auth_status:
-            return PlainTextResponse("no active session")
+            return PlainTextResponse("no active session", status_code=404)
 
         is_verified = esp_auth_status[uin]
         if is_verified:
             esp_auth_status.pop(uin, None)
-            return PlainTextResponse("success")
+            return PlainTextResponse("success", status_code=200)
         else:
-            return PlainTextResponse("pending")
+            return PlainTextResponse("pending", status_code=202)
+
     except Exception as e:
         logger.error(f"Status check failed: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        return PlainTextResponse("-1", status_code=500)
