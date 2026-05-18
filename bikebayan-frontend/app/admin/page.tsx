@@ -12,8 +12,12 @@ import Link from "next/link";
 
 const ADMIN_EMAIL = "admin@bikebayan.ph";
 
-const formatPHTime = (dateStr: string, options: Intl.DateTimeFormatOptions) =>
-  new Date(dateStr).toLocaleString("en-PH", { timeZone: "Asia/Manila", ...options });
+const formatPHTime = (dateStr: string, options: Intl.DateTimeFormatOptions) => {
+  if (!dateStr) return "";
+  const date = new Date(dateStr);
+  date.setHours(date.getHours() + 8);
+  return date.toLocaleString("en-PH", options);
+};
 
 type Report = {
   id: number;
