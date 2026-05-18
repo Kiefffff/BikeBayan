@@ -395,9 +395,9 @@ String unlock(int slot) { // returns RFID of bike in slot
       delay(1500); // 1.5 seconds MAX 
       digitalWrite(UNLOCK_2, HIGH);
       delay(2500); // 2.5 seconds rest
-      if(lockCheck(1) == 0){
+      if(lockCheck(2) == 0){
         delay(1500);
-        if(lockCheck(1) == 0){
+        if(lockCheck(2) == 0){
           break;
         }
       }
