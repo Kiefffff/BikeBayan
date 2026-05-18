@@ -14,9 +14,14 @@ const ADMIN_EMAIL = "admin@bikebayan.ph";
 
 const formatPHTime = (dateStr: string, options: Intl.DateTimeFormatOptions) => {
   if (!dateStr) return "";
+  return new Date(dateStr).toLocaleString("en-PH", { timeZone: "Asia/Manila", ...options });
+};
+
+const formatPHTimeNaive = (dateStr: string, options: Intl.DateTimeFormatOptions) => {
+  if (!dateStr) return "";
   const date = new Date(dateStr);
   date.setHours(date.getHours() + 8);
-  return date.toLocaleString("en-PH", options);
+  return date.toLocaleString("en-PH", options); 
 };
 
 type Report = {
@@ -374,7 +379,7 @@ export default function AdminDashboard() {
                         </p>
                         <p className="text-xs text-black">
                           <Clock className="w-3 h-3 inline mr-1" />
-                          Started: {formatPHTime(rental.start_time, { hour: "2-digit", minute: "2-digit" })}
+                          Started: {formatPHTimeNaive(rental.start_time, { hour: "2-digit", minute: "2-digit" })}
                         </p>
                       </div>
                     </div>
