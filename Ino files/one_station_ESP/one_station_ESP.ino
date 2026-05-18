@@ -42,8 +42,8 @@ JsonDocument json;
 int BUTTON_1_STATE = LOW;
 int BUTTON_2_STATE = LOW;
 // wifi config; use home wifi or acl wifi (or could data wifi)
-const char* WIFI_SSID = "brunolee";
-const char* WIFI_PW = "mgabatalangnakakaalam99";
+const char* WIFI_SSID = "Monty Meow";
+const char* WIFI_PW = "87654321";
 const char* API_URL = "http://54.255.202.140:8000/api";
 
 //mfrc522 variables
@@ -295,12 +295,14 @@ void borrowing(String uin) {
         lcd.print("Pick a slot w/ bike");
         lcd.setCursor(0, 1);
         lcd.print("press 1 for slot 1");
+
+      } else {
+        lcd.clear();
+        lcd.setCursor(0, 0); 
+        lcd.print("Slot 1 has been unlocked.");
         break;
-      } 
-      lcd.clear();
-      lcd.setCursor(0, 0); 
-      lcd.print("Slot 1 has been unlocked.");
-      break;
+      }
+      
     }
   }
 
@@ -322,6 +324,7 @@ void borrowing(String uin) {
   // runs station update and set user borrowing
   stationUpdate();
   setUserBorrowing(uin, String(STATION_ID), rfid);
+  raw_json = "";
   return;
 }
 
@@ -397,6 +400,7 @@ void returning(String uin) {
   }
   setUserReturned(uin, String(STATION_ID));
   stationUpdate();
+  raw_json = "";
   return;
 }
 
@@ -454,6 +458,16 @@ String rfidScan(int rfid_slot) { // rfid slot can be 1 or 2 for this station, re
     delay(50);
   }
 
+  if (!readSerial) {
+    Serial.println("WUPA failed, trying IsNewCardPresent...");
+    if (mfrc522[sensor].PICC_IsNewCardPresent()) {
+      readSerial = mfrc522[sensor].PICC_ReadCardSerial();
+      if (readSerial) {
+        Serial.println("Card found via IsNewCardPresent");
+      }
+    }
+  }
+
   bool isLocked = lockCheck(rfid_slot);
 
   Serial.println(String(readSerial) + String(isLocked));
@@ -468,20 +482,16 @@ String rfidScan(int rfid_slot) { // rfid slot can be 1 or 2 for this station, re
     lcd.setCursor(0, 0); 
     lcd.print(dump_byte_array(mfrc522[sensor].uid.uidByte, mfrc522[sensor].uid.size));
     delay(500);
-  } else {
-    readRFID = "0";
-    lcd.clear();
-    lcd.setCursor(0, 0); 
-    lcd.print(dump_byte_array(mfrc522[sensor].uid.uidByte, mfrc522[sensor].uid.size));
-    delay(500);
-    Serial.println(dump_byte_array(mfrc522[sensor].uid.uidByte, mfrc522[sensor].uid.size));
   }
+
   mfrc522[sensor].PICC_HaltA();
   mfrc522[sensor].PCD_StopCrypto1();
   //}
   // translation (this our only demo bike)
-  if(readRFID == "96 f9 11 06"){ 
+  if(readRFID == "96 f9 11 06" && lockCheck(rfid_slot)){ 
     readRFID = "67";
+  } else {
+    readRFID = "0";
   }
   // LCD notes bike detection
   if(readRFID != "0"){ 
