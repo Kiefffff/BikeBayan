@@ -12,6 +12,9 @@ import Link from "next/link";
 
 const ADMIN_EMAIL = "admin@bikebayan.ph";
 
+const formatPHTime = (dateStr: string, options: Intl.DateTimeFormatOptions) =>
+  new Date(dateStr).toLocaleString("en-PH", { timeZone: "Asia/Manila", ...options });
+
 type Report = {
   id: number;
   rental_id: number;
@@ -364,7 +367,7 @@ export default function AdminDashboard() {
                       </p>
                       <p className="text-xs text-black">
                         <Clock className="w-3 h-3 inline mr-1" />
-                        Started: {new Date(rental.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        Started: {formatPHTime(rental.start_time, { hour: "2-digit", minute: "2-digit" })}
                       </p>
                     </div>
                   </div>
@@ -461,7 +464,6 @@ export default function AdminDashboard() {
                         </span>
                         <div className="min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <span className="font-medium text-sm text-black">{report.email || `Rental #${report.rental_id}`}</span>
                             <span className={`text-xs px-2 py-0.5 rounded-full ${
                               report.resolved
                                 ? "bg-green-100 text-green-700"
@@ -470,7 +472,7 @@ export default function AdminDashboard() {
                               {report.resolved ? "Resolved" : "Open"}
                             </span>
                             <span className="text-xs text-black">
-                              Rental #${report.rental_id}
+                              Rental #{report.rental_id}
                             </span>
                           </div>
                           <p className="text-sm text-black truncate mt-0.5">{report.body}</p>
@@ -505,7 +507,13 @@ export default function AdminDashboard() {
                       <div className="mt-4 ml-8 space-y-3">
                         {report.created_at && (
                           <p className="text-xs text-black">
-                            Submitted {new Date(report.created_at).toLocaleString()}
+                            Submitted {formatPHTime(report.created_at, {
+                              year: "numeric",
+                              month: "short",
+                              day: "numeric",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
                           </p>
                         )}
 
