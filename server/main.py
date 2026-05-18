@@ -37,8 +37,8 @@ async def check_late_bikes_loop():
                     if start_time.tzinfo is None:
                         start_time = start_time.replace(tzinfo=timezone.utc)
                         
-                    duration_hours = (now_time - start_time).total_seconds() / 3600.0
-                    if duration_hours > 3: 
+                    duration_seconds = (now_time - start_time).total_seconds() 
+                    if duration_seconds > 90: 
                         user_check = supabase.table("user").select("status").eq("uin", rental["user_uin"]).execute()
                         if user_check.data and user_check.data[0]["status"] != "Flagged":
                             supabase.table("user").update({"status": "Flagged"}).eq("uin", rental["user_uin"]).execute()
