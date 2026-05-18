@@ -149,11 +149,19 @@ async def set_user_returned(req: EspReturnedRequest):
             "id", bike_id
         ).execute()
 
-        supabase.table("user").update({"status": "Cleared"}).eq(
-            "uin", req.uin
-        ).execute()
+        user_check = supabase.table("user").select("status").eq("uin", req.uin).execute()
+        
+        if user_check.data:
+            current_status = user_check.data[0].get("status")
+            
+            if current_status != "Flagged":
+                supabase.table("user").update({"status": "Cleared"}).eq("uin", req.uin).execute()
+                logger.info(f"User {req.uin} returned on time. Status set to Cleared.")
+            else:
+                logger.info(f"User {req.uin} returned late. Keeping status as Flagged.")
 
         return PlainTextResponse("1", status_code=200)
+        
     except Exception as e:
-        logger.error(f"Set Cleared failed: {e}")
+        logger.error(f"Set Returned failed: {e}")
         return PlainTextResponse("-1", status_code=500)
