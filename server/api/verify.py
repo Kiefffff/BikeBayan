@@ -36,7 +36,7 @@ async def verify_scan(req: VerifyRequest):
     try:
         return await asyncio.wait_for(
             asyncio.to_thread(process_verification, req), 
-            timeout=120
+            timeout=20
         )
     except asyncio.TimeoutError:
         logging.error("MOSIP API or Database took too long to respond.")
