@@ -40,7 +40,7 @@ async def check_late_bikes_loop():
                     duration_seconds = (now_time - start_time).total_seconds() 
                     if duration_seconds > 90: 
                         user_check = supabase.table("user").select("status").eq("uin", rental["user_uin"]).execute()
-                        if user_check.data and user_check.data[0]["status"] != "Flagged":
+                        if user_check.data and user_check.data[0]["status"] == "Borrowing":
                             supabase.table("user").update({"status": "Flagged"}).eq("uin", rental["user_uin"]).execute()
                             print(f"AUTOMATIC FLAG: User {rental['user_uin']} exceeded 3 hours.")
 
