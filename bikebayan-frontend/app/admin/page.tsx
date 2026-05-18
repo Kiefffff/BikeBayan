@@ -166,7 +166,6 @@ export default function AdminDashboard() {
       );
       setEditingReport(null);
     } catch (err: any) {
-      // The detail field might be an object (e.g. Pydantic validation error array)
       const detail = err.response?.data?.detail;
       if (typeof detail === "string") {
         setSaveError(detail);
@@ -348,36 +347,41 @@ export default function AdminDashboard() {
               </div>
             ) : (
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {activeRentals.map(rental => (
-                  <div key={rental.id} className="p-4 rounded-xl border border-purple-100 bg-purple-50/50">
-                    <div className="flex justify-between items-start mb-3">
-                      <h3 className="font-bold text-purple-900 flex items-center gap-2 text-black">
-                        <Bike className="w-4 h-4" />
-                        Bike #{rental.bike_id}
-                      </h3>
-                      <span className="text-xs px-2 py-1 rounded-full bg-purple-100 text-purple-700 font-medium flex items-center gap-1.5">
-                        <span className="w-1.5 h-1.5 rounded-full bg-purple-500 animate-pulse"></span>
-                        On the road
-                      </span>
+                {activeRentals.map(rental => {
+                  // Check if the user associated with this rental is in the flagged users list
+                  const isLate = flaggedUsers.some(u => u.uin === rental.user_uin);
+                  
+                  return (
+                    <div key={rental.id} className={`p-4 rounded-xl border ${isLate ? 'border-red-200 bg-red-50/50' : 'border-purple-100 bg-purple-50/50'}`}>
+                      <div className="flex justify-between items-start mb-3">
+                        <h3 className="font-bold text-black flex items-center gap-2">
+                          <Bike className="w-4 h-4" />
+                          Bike #{rental.bike_id}
+                        </h3>
+                        <span className={`text-xs px-2 py-1 rounded-full font-medium flex items-center gap-1.5 ${isLate ? 'bg-red-100 text-red-700' : 'bg-purple-100 text-purple-700'}`}>
+                          <span className={`w-1.5 h-1.5 rounded-full animate-pulse ${isLate ? 'bg-red-500' : 'bg-purple-500'}`}></span>
+                          {isLate ? "Late" : "On the road"}
+                        </span>
+                      </div>
+                      
+                      <div className={`bg-white p-3 rounded-lg border ${isLate ? 'border-red-100' : 'border-purple-100'}`}>
+                        <p className="text-sm text-black mb-1">
+                          <span className="font-medium text-black">Rider UIN:</span> {rental.user_uin}
+                        </p>
+                        <p className="text-xs text-black">
+                          <Clock className="w-3 h-3 inline mr-1" />
+                          Started: {formatPHTime(rental.start_time, { hour: "2-digit", minute: "2-digit" })}
+                        </p>
+                      </div>
                     </div>
-                    
-                    <div className="bg-white p-3 rounded-lg border border-purple-100">
-                      <p className="text-sm text-black mb-1">
-                        <span className="font-medium text-black">Rider UIN:</span> {rental.user_uin}
-                      </p>
-                      <p className="text-xs text-black">
-                        <Clock className="w-3 h-3 inline mr-1" />
-                        Started: {formatPHTime(rental.start_time, { hour: "2-digit", minute: "2-digit" })}
-                      </p>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
         </div>
 
-        {/* 3. NEW: Flagged Users */}
+        {/* 3. Flagged Users */}
         <div className="bg-white rounded-2xl shadow-sm border mb-8">
           <div className="p-6 border-b">
             <h2 className="text-lg font-bold flex items-center gap-2 text-black">

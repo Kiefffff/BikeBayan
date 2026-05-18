@@ -212,15 +212,15 @@ async def get_flagged_users():
 @router.post("/users/{uin}/clear")
 async def clear_flagged_user(uin: int):
     try:
-        # missing_bike_check = supabase.table("rental").select("id").eq(
-        #     "user_uin", uin
-        # ).is_("end_station_id", "null").execute()
+        missing_bike_check = supabase.table("rental").select("id").eq(
+            "user_uin", uin
+        ).is_("end_station_id", "null").execute()
 
-        # if missing_bike_check.data:
-        #     raise HTTPException(
-        #         status_code=400, 
-        #         detail="Cannot clear user: Their bike has not been returned to a station yet."
-        #     )
+        if missing_bike_check.data:
+            raise HTTPException(
+                status_code=400, 
+                detail="Cannot clear user: Their bike has not been returned to a station yet."
+            )
             
         response = supabase.table("user").update({"status": "Cleared"}).eq("uin", uin).execute()
         
@@ -228,7 +228,7 @@ async def clear_flagged_user(uin: int):
             raise HTTPException(status_code=404, detail="User not found")
         
         logger.info(f"Admin manually cleared User {uin}.")
-        return {"message": f"User {uin} successfully cleared."}
+        return {"message": f"User {uin} successfully cleared (Return Verified)."}
         
     except HTTPException:
         raise 
